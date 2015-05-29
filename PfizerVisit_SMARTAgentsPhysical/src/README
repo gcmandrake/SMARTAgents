@@ -1,0 +1,3 @@
+README
+
+Recompile IDL: Z:\Evolvable Assembly Systems\Git\TestSerializeACLViaRTI\TestSerializeACLViaRTI\src>%NDDSHOME%\scripts\rtiddsgen -stringSize 16384 -replace -ppDisable -example -language java x64Win64jdk testACL.idl

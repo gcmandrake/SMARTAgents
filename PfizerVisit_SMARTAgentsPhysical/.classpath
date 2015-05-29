@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/RTI/ndds.5.1.0/class/nddsjava.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/RTI/ndds.5.1.0/class/rticonnextmsg.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="src/JADE/jade.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
