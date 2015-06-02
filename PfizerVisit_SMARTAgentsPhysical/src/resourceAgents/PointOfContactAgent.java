@@ -36,7 +36,7 @@ public class PointOfContactAgent extends ResourceAgent {
 	int orderCounter = 0;
 	protected HashMap<String, RequestReplyMessageChannel> channelsToAgents = new HashMap<String, RequestReplyMessageChannel>();	
 	
-	final String RECIPE_TOPIC_NAME = "recipe_topic";	
+	final static String RECIPE_TOPIC_NAME = "recipe_topic";	
 	ConcurrentLinkedQueue<KeyValueSimple> recipes = new ConcurrentLinkedQueue<KeyValueSimple>();
 	
 	@Override
@@ -148,7 +148,7 @@ public class PointOfContactAgent extends ResourceAgent {
 		Behaviour completeOrderBehaviour = new Behaviour() {	
 			
 			//Add Recipe UID to all requirements
-			String recipeUID = new String(getName() + ":" + orderCounter++);
+			String recipeUID = getName() + ":" + orderCounter++;
 			ArrayList<Requirement> requirementsWithUIDs = new ArrayList<Requirement>();		
 			//The recipe. The barcode is currently unknown. //TODO: How to resolve this?
 			Recipe newRecipe;
@@ -369,7 +369,7 @@ public class PointOfContactAgent extends ResourceAgent {
 							
 							Requirement checkedRequirement = entry.getValue();
 							if (checkedRequirement.getStatus().equalsIgnoreCase(STATUS_COMPLETED)) {
-								System.out.println("Checked Requirement: " + checkedRequirement.getRequiredCapability() + " complete!");
+								System.out.println("Product " + newRecipe.getUID() + " requirement: " + checkedRequirement.getRequiredCapability() + " complete!");
 								//Do Nothing
 							} else if (checkedRequirement.getStatus().equalsIgnoreCase(STATUS_FAILED)) {
 								//Process failed so remove recipe.
@@ -392,7 +392,9 @@ public class PointOfContactAgent extends ResourceAgent {
 						
 					} finally {
 						
-						referencedRecipesLock.unlock();	
+						if (referencedRecipesLock.isHeldByCurrentThread()) {
+							referencedRecipesLock.unlock();	
+						}
 					}
 					
 					System.out.println("==========================================================================================");					
@@ -409,12 +411,18 @@ public class PointOfContactAgent extends ResourceAgent {
 				//This product is now completed.
 				case 5:
 					
-					System.out.println("+++ Recipe: " + newRecipe.getIdentifier() + " Step 5: Product Completed");
+					System.out.println("+++ Recipe: " + newRecipe.getUID() + " Step 5: Product Completed");
 					
 					generalPublisher.sendKeyValueMessage(GENERAL_PUBLISHER_TOPIC, ANNOUNCE_RECIPE_FINISHED, newRecipe.getUID());	
 					//System.out.println("Finished recipe announce published");
 					//TODO: Agents unsubscribe from finished recipes
 					step = 6;
+					
+				break;
+				
+				default:
+					
+					System.out.println("[Fundamental Logic Error] PoCAgent default entry in switch statement: receiveRecipeForDispatch. Should never be here.");
 					
 				break;
 				

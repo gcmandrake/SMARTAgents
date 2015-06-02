@@ -2,6 +2,7 @@ package resourceAgents;
 
 import jade.lang.acl.ACLMessage;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -10,7 +11,12 @@ import RTI.ACL.TestACLMessengerRequestReply;
 import RTI.ACL.TestACLReceiverChannel;
 import RTI.ACL.TestACLReceiverRequestReply;
 
-public class RequestReplyMessageChannel {
+public class RequestReplyMessageChannel implements Serializable {	
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 595517035217449961L;
 	
 	//Direct messaging channel to agent
 	private TestACLMessengerChannel channelToAgent;	

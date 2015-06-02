@@ -89,8 +89,8 @@ public class ResourceAgent extends Agent {
 	//Stores the last barcode scanned
 	protected String lastBarcodeScanned = "XXXX";	
 	
-	protected String[] fakeBarcodes = {"AAAA", "BBBB"};
-	protected Boolean[] barcodesInUse = {false, false};
+	protected String[] fakeBarcodes = {"AAAA", "BBBB", "CCCC"};
+	protected Boolean[] barcodesInUse = {false, false, false};
 	
 	protected final String POINT_OF_CONTACT_CAPABILITY = "Point_Of_Contact";	
 	protected boolean HAS_POCA_BEEN_FOUND = false;
@@ -134,6 +134,10 @@ public class ResourceAgent extends Agent {
 	protected final int DEFAULT_PORT = 850;
 	//IP Address
 	private static final String HARDCODED_ETHERNET_IP = "192.254.1.2";
+	
+	//Is this agent connected to a PLC? Having a capability 'testing' will fake connection. Untested for mixed testing/not testing environments.
+	protected final static String TESTING_CAPABILITY = "testing";
+	boolean testingAgent = false;
 	
 	
 	//===========================================================================================================================================
@@ -180,12 +184,14 @@ public class ResourceAgent extends Agent {
 		//11: Periodically look for updates on productStatusSubscibers
 		receiveProductStatusUpdates();
 		
-		//12: check for new products that might need capabilities performing
-		checkForNewProduct();
-		
-		//13: connect to my PLC
+		//12: connect to my PLC
 		//TODO: Check this works
-		connectToPLC();
+		if (!testingAgent) {
+			connectToPLC();
+		}
+		
+		//13: check for new products that might need capabilities performing
+		checkForNewProduct();				
 		
 		//LAST: Anything else
 		additionalStartupCommands();
@@ -229,7 +235,7 @@ public class ResourceAgent extends Agent {
 		} catch(Exception e) {
 			
 			System.out.println("Could not open a socket connection with the JavaSMC-server on the PLC");
-			System.exit(0);
+			throw new RuntimeException("Could not open a socket connection with the JavaSMC-server on the PLC");
 	    }
 		
 	}
@@ -247,7 +253,7 @@ public class ResourceAgent extends Agent {
 				
 				if (!hardwareInUseLock.isLocked()) {
 				
-					String barcode = getCurrentBarcode();					
+					String barcode = parseReturnedBarcode(getCurrentBarcode());					
 										
 					if (!barcode.equalsIgnoreCase(lastBarcodeScanned)) {
 						lastBarcodeScanned = barcode;
@@ -258,8 +264,28 @@ public class ResourceAgent extends Agent {
 					}
 					
 				}
+				
+				//Or: am I a loader and should just load the container?
+				
+				if (!hardwareInUseLock.isLocked() && ((ResourceAgent)this.myAgent).canResourceAgentFulfilCapability(LOAD_CONTAINER_CAPABILITY)) {
+					
+					//perform action on a barcode-less container because the barcode hasnt been set yet..
+					performActionOnNewBarcode("");
+					
+				}
 			
 		}});
+	}
+	
+	//PLCs return Barcodes as <BARCODE> SUCCESS or <BARCODE> FAILURE. Remove success/failure.
+	protected String parseReturnedBarcode(String barcodeIn) {
+		
+		String barcode = barcodeIn;	
+		barcode = barcode.replace(" SUCCESS", "");
+		barcode = barcode.replace(" FAILURE", "");
+		
+		return barcode;
+		
 	}
 	
 	//Deal with the new product. Do we need to perform anything?
@@ -370,8 +396,12 @@ public class ResourceAgent extends Agent {
 			
 		} finally {
 			
-			referencedRecipesLock.unlock();	
-			toDoListLock.unlock();	
+			if (referencedRecipesLock.isHeldByCurrentThread()) {
+				referencedRecipesLock.unlock();	
+			}
+			if (toDoListLock.isHeldByCurrentThread()) {
+				toDoListLock.unlock();	
+			}
 		}
 	}
 	
@@ -391,12 +421,17 @@ public class ResourceAgent extends Agent {
 				hardwareInUseLock.lock();					
 				
 				//TODO: Check Releasing Hardware Works
-				sendMessagesToPLCReleaseContainer();	
+				if (!testingAgent) {
+					sendMessagesToPLCReleaseContainer();	
+				}
+				
 				System.out.println(getName() + " releasing container.");
 				
 				} finally {				
 					
-					hardwareInUseLock.unlock();
+					if (hardwareInUseLock.isHeldByCurrentThread()) {
+						hardwareInUseLock.unlock();
+					}
 					//System.out.println(getName() + ": Hardware unlocked after non-used barcode.");
 					
 				}			
@@ -466,35 +501,42 @@ public class ResourceAgent extends Agent {
 					if (requirement.getRequiredCapability().equalsIgnoreCase(LOAD_CONTAINER_CAPABILITY)) {
 						
 						//TODO: Actually assign barcode
-						//Get Barcode			
-						assignedBarcode = sendMessagesToPLCIdentifier(requirement);
+						//Get Barcode	
+						if (!testingAgent) {
+							
+							assignedBarcode = parseReturnedBarcode(sendMessagesToPLCIdentifier(requirement));
+							
+						} else {						
 						
-						/*
-						//Dummy Code ------
-						for (int i = 0; i < fakeBarcodes.length; i++) {
-							if (barcodesInUse[i] == false) {
-								barcodesInUse[i] = true;
-								assignedBarcode = fakeBarcodes[i];
-								break;
+							//Dummy Code ------
+							for (int i = 0; i < fakeBarcodes.length; i++) {
+								if (barcodesInUse[i] == false) {
+									barcodesInUse[i] = true;
+									assignedBarcode = fakeBarcodes[i];
+									break;
+								}
 							}
+							
+							Thread.sleep(5000);
+							
+							//-----						
 						}
 						
-						Thread.sleep(5000);
-						
-						//-----						
-						*/
-						
 					} else {
-					
-						//TODO: Actually perform requirement.
-						failed = sendMessagesToPLCDoJob(requirement, client);
 						
-						/*
-						//Dummy Code ----
-						failed = false;
-						Thread.sleep(5000);						
-						//----						 
-						*/
+						if (!testingAgent) {
+					
+							//TODO: Actually perform requirement.
+							failed = sendMessagesToPLCDoJob(requirement, client);
+						
+						} else {						
+							
+							//Dummy Code ----
+							failed = false;
+							Thread.sleep(5000);						
+							//----								
+							
+						}
 					
 					}
 					
@@ -538,7 +580,9 @@ public class ResourceAgent extends Agent {
 				
 				} finally {
 					
-					hardwareInUseLock.unlock();
+					if (hardwareInUseLock.isHeldByCurrentThread()) {
+						hardwareInUseLock.unlock();
+					}
 						
 				}
 			}			
@@ -636,8 +680,8 @@ public class ResourceAgent extends Agent {
 			case LOAD_CONTAINER_CAPABILITY:
 				
 				LoadContainerBehaviour loadContainerBehaviour = new LoadContainerBehaviour(requirement, client);
-				return loadContainerBehaviour.sendMessagesToPLC();
-				
+				return loadContainerBehaviour.sendMessagesToPLC();				
+			
 			default:
 				
 				System.out.println("Unknown identifier requirement");
@@ -656,48 +700,49 @@ public class ResourceAgent extends Agent {
 	//TODO: Barcode code
 	protected String getCurrentBarcode() {
 		
-		/*
-		Random random = new Random();
-		int randomNum = random.nextInt(5);
-		
-		//4 times out of 5 keep same barcode.
-		//1 time get new barcode from list of possible barcodes
-
-		if (randomNum > 0) {
-			//Do nothing
-			return lastBarcodeScanned;
+		if (testingAgent) {
+			Random random = new Random();
+			int randomNum = random.nextInt(5);
+			
+			//4 times out of 5 keep same barcode.
+			//1 time get new barcode from list of possible barcodes
+	
+			if (randomNum > 0) {
+				//Do nothing
+				return lastBarcodeScanned;
+			} else {
+				int randomBarcodeNumber = random.nextInt(fakeBarcodes.length);			
+				return fakeBarcodes[randomBarcodeNumber];
+			}
 		} else {
-			int randomBarcodeNumber = random.nextInt(fakeBarcodes.length);			
-			return fakeBarcodes[randomBarcodeNumber];
-		}
-		*/	
 		
 		//Actual Barcode Reading Code
 		
-		try {
-			
-			System.out.println("[getCurrentBarcode] Attempting to read barcode");
-			
-			Message req = new Message(Message.READ, Message.STRING, Message.LOCAL, "LastBarcode");
-	        String reply = client.send(req.toString());
-			System.out.println("[getCurrentBarcode] Sent message/received message");
-			
-	        Message replyMsg = new Message(reply);
-	        interpret(replyMsg);
-			System.out.println("[getCurrentBarcode] Interpretted message");
-
-	        String barCode = replyMsg.getValue();
-			System.out.println("[getCurrentBarcode] Saved Barcode");
-
-	        
-	        return barCode;
-	        
-		} catch (Exception e) {
-			
-			e.printStackTrace();
-			System.out.println(getName() + " could not read barcode");
-			
-			return "FAILED_TO_READ_BARCODE";
+			try {
+				
+				System.out.println("[getCurrentBarcode] Attempting to read barcode");
+				
+				Message req = new Message(Message.READ, Message.STRING, Message.LOCAL, "LastBarcode");
+		        String reply = client.send(req.toString());
+				//System.out.println("[getCurrentBarcode] Sent message/received message");
+				
+		        Message replyMsg = new Message(reply);
+		        interpret(replyMsg);
+				//System.out.println("[getCurrentBarcode] Interpretted message");
+	
+		        String barCode = replyMsg.getValue();
+				System.out.println("[getCurrentBarcode] Saved Barcode: " + barCode);
+	
+		        
+		        return parseReturnedBarcode(barCode);
+		        
+			} catch (Exception e) {
+				
+				e.printStackTrace();
+				System.out.println(getName() + " could not read barcode");
+				
+				return "FAILED_TO_READ_BARCODE";
+			}
 		}
         
 	}
@@ -708,10 +753,10 @@ public class ResourceAgent extends Agent {
 	protected void interpret(Message msgReply) {
 
 	    if(msgReply.getResult() == Message.ERROR) {
-	      System.out.println("Operation could not be successfully performed on the PLC");
+	      System.out.println("[Interpret] Operation could not be successfully performed on the PLC");
 	    }
 	    else if(msgReply.getResult() == Message.SUCCESS) {
-	      System.out.println("Operation was successful on the PLC, with value: " + msgReply.getValue());
+	      System.out.println("[Interpret] Operation was successful on the PLC, with value: " + msgReply.getValue());
 	    }
 	  }  
 	
@@ -829,10 +874,14 @@ public class ResourceAgent extends Agent {
 					System.out.println("Could not deserialise ACL message");
 					e.printStackTrace();
 				} finally {					
-									
-					referencedRecipesLock.unlock();						
-							
-					toDoListLock.unlock();					
+					
+					if (referencedRecipesLock.isHeldByCurrentThread()) {
+						referencedRecipesLock.unlock();
+					}
+					
+					if (toDoListLock.isHeldByCurrentThread()) {
+						toDoListLock.unlock();
+					}		
 					
 				}
 				
@@ -865,7 +914,7 @@ public class ResourceAgent extends Agent {
 	private ArrayList<String> getAgentCapabilitiesFromArgs() {
 		Object[] args = getArguments();
 		ArrayList<String> capabilities = new ArrayList<String>();
-		int argsLength = 0;
+		int argsLength = 0;		
 		
 		if (args != null && args.length > 0) {			
 			
@@ -873,10 +922,19 @@ public class ResourceAgent extends Agent {
 			
 			for (int i = 0; i < argsLength; i++) {	
 				
-				capabilities.add((String)args[i]);
-				System.out.println(getName() + " has capability " + (String)args[i]);			
+				if (((String)args[i]).equalsIgnoreCase(TESTING_CAPABILITY)) {
+					
+					this.testingAgent = true;
+					
+				} else {
+				
+					capabilities.add((String)args[i]);
+					System.out.println(getName() + " has capability " + (String)args[i]);
+				
+				}
 			}	
 		}
+		
 		return capabilities;
 	}
 	
@@ -1004,7 +1062,9 @@ public class ResourceAgent extends Agent {
 					e.printStackTrace();
 				} finally {
 					
-					referencedRecipesLock.unlock();	
+					if (referencedRecipesLock.isHeldByCurrentThread()) {
+						referencedRecipesLock.unlock();	
+					}
 					
 				}	
 				
@@ -1065,17 +1125,19 @@ public class ResourceAgent extends Agent {
 					//If I load containers, free barcode.
 					referencedRecipesLock.lock();
 					
-					//Dummy Code -----
-					//This code should not require an equivilent in full produciton code.
-					Recipe recipe = referencedRecipes.get(recipeUID);
-					String barcode = recipe.getIdentifier();
-					for (int i = 0; i < fakeBarcodes.length; i++) {
-						if (fakeBarcodes[i].equalsIgnoreCase(barcode)) {
-							barcodesInUse[i] = false;
+					if (testingAgent) {
+						
+						//Dummy Code -----
+						//This code should not require an equivilent in full produciton code.
+						Recipe recipe = referencedRecipes.get(recipeUID);
+						String barcode = recipe.getIdentifier();
+						for (int i = 0; i < fakeBarcodes.length; i++) {
+							if (fakeBarcodes[i].equalsIgnoreCase(barcode)) {
+								barcodesInUse[i] = false;
+							}
 						}
+						//---									
 					}
-					//---									
-					
 					//remove entry in referenced recipes					
 					referencedRecipes.remove(recipeUID);					
 					
@@ -1094,7 +1156,9 @@ public class ResourceAgent extends Agent {
 			//Do Nothing. The list is empty.
 		} finally {
 			
-			referencedRecipesLock.unlock();	
+			if (referencedRecipesLock.isHeldByCurrentThread()) {
+				referencedRecipesLock.unlock();
+			 }	
 			
 		}
 		
@@ -1123,6 +1187,7 @@ public class ResourceAgent extends Agent {
 				
 				//if an agent advertises a capability as 'Point_Of_Contact', this is the Point of Contact Agent.
 				if (components[i].equalsIgnoreCase(POINT_OF_CONTACT_CAPABILITY) && !HAS_POCA_BEEN_FOUND) {
+					System.out.println("Found POCA");
 					//this agent is the PoCA. Handle
 					createPoCACommunicationChannel(agentName);
 				}

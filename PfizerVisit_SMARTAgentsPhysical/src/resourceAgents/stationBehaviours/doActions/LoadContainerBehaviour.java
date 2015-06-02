@@ -33,50 +33,50 @@ public class LoadContainerBehaviour {
 		
 		try {	
 			
-			//TODO: This needs work!
-			
-			Message replyMsg;
-		
-			String lastBarCode = "";
-			String loadedBarcode = "BARCODE_NOT_SCANNED";
-			
-			req = new Message(Message.READ, Message.STRING, Message.LOCAL, "LastBarcode");
-			reply = client.send(req.toString());
-		    replyMsg = new Message(reply);
-		    interpret(replyMsg);
-		    loadedBarcode = replyMsg.getValue();
-		    
-		    if (!lastBarCode.equalsIgnoreCase(loadedBarcode)) {
-		    	
-		    	lastBarCode = loadedBarcode;		    
-			
-				// pulse the boolean variable `Go' 
-		        req = new Message(Message.WRITE, Message.BOOL, String.valueOf(true), Message.LOCAL, "Go");
-		        reply = client.send(req.toString());
-		        replyMsg = new Message(reply);
-		        interpret(replyMsg);
-	
-		        Thread.sleep(2000);
-	
-		        req = new Message(Message.WRITE, Message.BOOL, String.valueOf(false), Message.LOCAL, "Go");
-		        reply = client.send(req.toString());
-		        replyMsg = new Message(reply);
-		        interpret(replyMsg);
-			     
-		        req = new Message(Message.WRITE, Message.BOOL, String.valueOf(true), Message.LOCAL, "m");
-		        reply = client.send(req.toString());
-		        replyMsg = new Message(reply);
-		        interpret(replyMsg);
+		  // send a request to read the string from the PLC's local variable named 'LastBarCode'
+		  req = new Message(Message.READ, Message.STRING, Message.LOCAL, "LastBarcode");
+		  reply = client.send(req.toString());
+		  Message replyMsg = new Message(reply);
+		  interpret(replyMsg);
+		  String barCode = replyMsg.getValue();
+        
+	      // pulse the boolean variable `Go' 
+          req = new Message(Message.WRITE, Message.BOOL, String.valueOf(true), Message.LOCAL, "Go");
+          reply = client.send(req.toString());
+          replyMsg = new Message(reply);
+          interpret(replyMsg);
+
+          Thread.sleep(2000);
+
+          req = new Message(Message.WRITE, Message.BOOL, String.valueOf(false), Message.LOCAL, "Go");
+          reply = client.send(req.toString());
+          replyMsg = new Message(reply);
+          interpret(replyMsg);
+	     
+          req = new Message(Message.WRITE, Message.BOOL, String.valueOf(true), Message.GLOBAL, "m");
+          reply = client.send(req.toString());
+          replyMsg = new Message(reply);
+          interpret(replyMsg);
+
+          Thread.sleep(2000);
+
+          req = new Message(Message.WRITE, Message.BOOL, String.valueOf(false), Message.GLOBAL, "m");
+          reply = client.send(req.toString());
+          replyMsg = new Message(reply);
+          interpret(replyMsg);
+          
+         
+	      
+	      return barCode;
 	        
-		    }
-		    
-		    return loadedBarcode;
-	    
-		} catch(Exception e) {
-	        System.out.println("Could not communicate with PLC");
-	        
+	      }
+	
+	      catch(Exception e) {
+	    	  
+	        System.out.println("Could not communicate with PLC");	        
 	        return "ERROR_SCANNING_BARCODE";
-	    }
+	        
+	      }
 
 	}
 	

@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane prefHeight="339.0" prefWidth="333.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.RecipeCreatorController">
+<AnchorPane prefHeight="400.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.RecipeCreatorController">
    <children>
       <BorderPane prefHeight="339.0" prefWidth="333.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <top>
@@ -36,8 +37,12 @@
                 <ColumnConstraints halignment="RIGHT" hgrow="SOMETIMES" maxWidth="158.0" minWidth="10.0" prefWidth="158.0" />
                   <ColumnConstraints halignment="RIGHT" hgrow="SOMETIMES" maxWidth="105.0" minWidth="10.0" prefWidth="21.0" />
                 <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="200.0" minWidth="10.0" prefWidth="152.0" />
+                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="200.0" minWidth="10.0" prefWidth="62.0" />
+                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="200.0" minWidth="10.0" prefWidth="120.0" />
               </columnConstraints>
               <rowConstraints>
+                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
@@ -49,27 +54,51 @@
                   <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
               </rowConstraints>
                <children>
-                  <Label text="Load Container" />
-                  <CheckBox fx:id="loadContainer" mnemonicParsing="false" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
-                  <Label text="Fill Red" GridPane.rowIndex="1" />
-                  <Label text="Fill Blue" GridPane.rowIndex="2" />
-                  <Label text="Fill Yellow" GridPane.rowIndex="3" />
-                  <Label text="Test" GridPane.rowIndex="4" />
-                  <Label text="Lid" GridPane.rowIndex="5" />
-                  <Label text="Dispatch" GridPane.rowIndex="7" />
-                  <TextField fx:id="quantityRed" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-                  <TextField fx:id="quantityBlue" GridPane.columnIndex="2" GridPane.rowIndex="2" />
-                  <TextField fx:id="quantityYellow" GridPane.columnIndex="2" GridPane.rowIndex="3" />
-                  <CheckBox fx:id="lidContainer" mnemonicParsing="false" GridPane.columnIndex="2" GridPane.rowIndex="5" />
-                  <CheckBox fx:id="dispatchContainer" mnemonicParsing="false" GridPane.columnIndex="2" GridPane.rowIndex="7" />
-                  <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.rowIndex="4" GridPane.valignment="CENTER">
+                  <Label text="Load Container" GridPane.rowIndex="2" />
+                  <CheckBox fx:id="loadContainer" mnemonicParsing="false" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.rowIndex="2" GridPane.valignment="CENTER" />
+                  <Label text="Fill Red" GridPane.rowIndex="3" />
+                  <Label text="Fill Blue" GridPane.rowIndex="4" />
+                  <Label text="Fill Yellow" GridPane.rowIndex="5" />
+                  <Label text="Test" GridPane.rowIndex="6" />
+                  <Label text="Lid" GridPane.rowIndex="7" />
+                  <Label text="Dispatch" GridPane.rowIndex="9" />
+                  <TextField fx:id="quantityRed" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+                  <TextField fx:id="quantityBlue" GridPane.columnIndex="2" GridPane.rowIndex="4" />
+                  <TextField fx:id="quantityYellow" GridPane.columnIndex="2" GridPane.rowIndex="5" />
+                  <CheckBox fx:id="lidContainer" mnemonicParsing="false" GridPane.columnIndex="2" GridPane.rowIndex="7" />
+                  <CheckBox fx:id="dispatchContainer" mnemonicParsing="false" GridPane.columnIndex="2" GridPane.rowIndex="9" />
+                  <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.rowIndex="6" GridPane.valignment="CENTER">
                      <children>
                         <CheckBox fx:id="testContainer" alignment="CENTER" mnemonicParsing="false" />
                         <TextField fx:id="testQuantity" alignment="CENTER" />
                      </children>
                   </HBox>
-                  <TextField fx:id="labelPrint" GridPane.columnIndex="2" GridPane.rowIndex="6" />
-                  <Label text="Print Label" GridPane.rowIndex="6" />
+                  <TextField fx:id="labelPrint" GridPane.columnIndex="2" GridPane.rowIndex="8" />
+                  <Label text="Print Label" GridPane.rowIndex="8" />
+                  <CheckBox fx:id="PoCOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="1" />
+                  <Label text="Point of Contact" GridPane.rowIndex="1" />
+                  <CheckBox fx:id="LoadContainerOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="2" />
+                  <CheckBox fx:id="FillRedOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="3" />
+                  <CheckBox fx:id="FillBlueOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="4" />
+                  <CheckBox fx:id="FillYellowOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="5" />
+                  <CheckBox fx:id="TestOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="6" />
+                  <CheckBox fx:id="LidOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="7" />
+                  <CheckBox fx:id="DispatchOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="9" />
+                  <Label text="Create Recipe" GridPane.columnIndex="2">
+                     <font>
+                        <Font name="System Bold" size="15.0" />
+                     </font>
+                  </Label>
+                  <Label text="Online" GridPane.columnIndex="4">
+                     <font>
+                        <Font name="System Bold" size="15.0" />
+                     </font>
+                  </Label>
+                  <Label text="Station">
+                     <font>
+                        <Font name="System Bold" size="15.0" />
+                     </font>
+                  </Label>
                </children>
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

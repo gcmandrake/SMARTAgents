@@ -5,10 +5,15 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import RTI.ACL.Base64Coder;
 import RTI.ACL.TestACL;
 import RTI.keyValue.KeyValuePairPublisherModule;
+import RTI.keyValue.KeyValuePairSubscriberModule;
 import resourceAgents.Requirement;
+import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -39,8 +44,27 @@ public class RecipeCreatorController {
 	final int DOMAIN_ID = 5;
 	final String RECIPE_TOPIC_NAME = "recipe_topic";
 	final String RECIPE_DISPATCH_NAME = "Recipe_Dispatch";
+	final String GENERAL_PUBLISHER_TOPIC = "general_announce";
 	
 	private RTI.keyValue.KeyValuePairPublisherModule publisher;
+	private RTI.keyValue.KeyValuePairSubscriberModule subscriber;
+	
+	@FXML
+	CheckBox PoCOnline;
+	@FXML
+	CheckBox LoadContainerOnline;
+	@FXML
+	CheckBox FillRedOnline;
+	@FXML
+	CheckBox FillYellowOnline;
+	@FXML
+	CheckBox FillBlueOnline;
+	@FXML
+	CheckBox TestOnline;
+	@FXML
+	CheckBox LidOnline;
+	@FXML
+	CheckBox DispatchOnline;
 
 	
 	@FXML
@@ -77,6 +101,24 @@ public class RecipeCreatorController {
 	@FXML
 	private void initialize() {
 		
+		PoCOnline.setSelected(false);
+		LoadContainerOnline.setSelected(false);
+		FillRedOnline.setSelected(false);
+		FillYellowOnline.setSelected(false);
+		FillBlueOnline.setSelected(false);
+		TestOnline.setSelected(false);
+		LidOnline.setSelected(false);
+		DispatchOnline.setSelected(false);
+		
+		PoCOnline.setDisable(true);
+		LoadContainerOnline.setDisable(true);
+		FillRedOnline.setDisable(true);
+		FillYellowOnline.setDisable(true);
+		FillBlueOnline.setDisable(true);
+		TestOnline.setDisable(true);
+		LidOnline.setDisable(true);
+		DispatchOnline.setDisable(true);
+		
 		loadContainer.setSelected(false);
 		lidContainer.setSelected(false);
 		dispatchContainer.setSelected(false);
@@ -93,6 +135,18 @@ public class RecipeCreatorController {
 		
 		publisher = new KeyValuePairPublisherModule(DOMAIN_ID, RECIPE_DISPATCH_NAME, false);
 		publisher.createTopic(RECIPE_TOPIC_NAME);
+		
+		subscriber = new KeyValuePairSubscriberModule(DOMAIN_ID, GENERAL_PUBLISHER_TOPIC, true);
+		
+		new Timer().schedule(
+			    new TimerTask() {
+
+			        @Override
+			        public void run() {
+			            System.out.println("ping");
+			        }
+			    }, 0, 5000);
+		
 		
 	}
 	
