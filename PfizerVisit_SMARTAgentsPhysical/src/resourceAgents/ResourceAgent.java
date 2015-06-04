@@ -130,6 +130,8 @@ public class ResourceAgent extends Agent {
 	protected  PLCClient client;
 	//Verbose status?
 	protected boolean verbose = true;
+	//Connected to PLC?
+	protected boolean connectedToPLC = false;
 	//Communication port
 	protected final int DEFAULT_PORT = 850;
 	//IP Address
@@ -182,12 +184,14 @@ public class ResourceAgent extends Agent {
 		checkForRequests();		
 		
 		//11: Periodically look for updates on productStatusSubscibers
-		receiveProductStatusUpdates();
+		//receiveProductStatusUpdates();
 		
 		//12: connect to my PLC
 		//TODO: Check this works
 		if (!testingAgent) {
-			connectToPLC();
+			while (!connectedToPLC) {
+				connectToPLC();
+			}
 		}
 		
 		//13: check for new products that might need capabilities performing
@@ -226,7 +230,8 @@ public class ResourceAgent extends Agent {
 		          
 		    		  System.out.println("Could not open a socket connection with the JavaSMC-server on the PLC");
 		    		  Thread.sleep(5000);
-		    	  } else {		       
+		    	  } else {		 
+		    		  connectedToPLC = true;
 		    		  break;
 		    	  }
 		    }		    
@@ -489,6 +494,10 @@ public class ResourceAgent extends Agent {
 				System.out.println(getName() + " performing requirement " + requirement.getRequiredCapability() + " for " + requirement.getRecipeUID());
 				
 				try {	
+					
+					while (hardwareInUseLock.isLocked()) {
+						
+					}
 					
 					//Lock the hardware
 					hardwareInUseLock.lock();					
@@ -776,7 +785,7 @@ public class ResourceAgent extends Agent {
 				ACLMessage request = aclMessages.peek();
 				
 				if (request != null) {
-					//System.out.println("Attempting to match message: " + request.getConversationId());
+					System.out.println("Attempting to match message: " + request.getConversationId());
 				}
 				
 				try {
@@ -788,10 +797,10 @@ public class ResourceAgent extends Agent {
 						referencedRecipesLock.lock();
 						toDoListLock.lock();
 						
-						/*System.out.println("Dealing with Message!");
+						System.out.println("Dealing with Message!");
 						System.out.println("Performative: " + request.getPerformative());
 						System.out.println("Conversation ID: " + request.getConversationId());
-						System.out.println("Content: " + request.getContent());*/
+						System.out.println("Content: " + request.getContent());
 						
 						RequestAndRecipe requestAndRecipe = (RequestAndRecipe) request.getContentObject();
 						
@@ -837,7 +846,7 @@ public class ResourceAgent extends Agent {
 							
 							//Subscribe/Publish to that recipe's topic
 							generalPublisher.createTopic(requestAndRecipe.recipe.getUID());
-							//productStatusPublishers.put(requestAndRecipe.recipe.getUID(), new KeyValuePairPublisher(DOMAIN_ID, requestAndRecipe.recipe.getUID(), myAgent.getName()));
+							//productStatusPublishers.put(requestAndRecipe.recipe.getUID(), new KeyValuePairPublisher(DOMAIN_ID, requestAndRecipe.recipe.getUID(), myAgent.getName()));							
 							generalSubscriber.createTopic(requestAndRecipe.recipe.getUID());
 							//productStatusSubscribers.put(requestAndRecipe.recipe.getUID(), new KeyValuePairSubscriber(DOMAIN_ID, requestAndRecipe.recipe.getUID(), myAgent.getName()));
 							
@@ -1006,7 +1015,7 @@ public class ResourceAgent extends Agent {
 					
 					referencedRecipesLock.lock();
 					
-					ArrayList<String> allTopics = generalSubscriber.getAllRecipeTopics();
+					ArrayList<String> allTopics = generalSubscriber.getAllRecipeTopics();					
 				
 					//For every product status subscriber
 					for (int topicCount = 0; topicCount < allTopics.size(); topicCount++) {			
@@ -1054,12 +1063,20 @@ public class ResourceAgent extends Agent {
 							}
 							
 						} else {
-							System.out.println("+++ ERROR " + getName() + " general subscriber not started! (ReceiveProductStatusUpdates)");							
+							System.out.println("+++ ERROR " + getName() + " No recipe for that topic! (ReceiveProductStatusUpdates)");	
+							/*System.out.println("All Topics: " + allTopics.toString());
+							System.out.println("All Topics size: " + allTopics.size());
+							
+							System.out.println("Topic to investigate = " + topicCount);
+							System.out.println("Referenced Recipes: " + referencedRecipes.toString());
+							System.out.println("Referenced Recipes Count: " + referencedRecipes.size());*/
+							
 						}
 					}
 				} catch (NullPointerException e) {
 					System.out.println(getName() + " has a problem");
 					e.printStackTrace();
+					
 				} finally {
 					
 					if (referencedRecipesLock.isHeldByCurrentThread()) {
@@ -1209,6 +1226,15 @@ public class ResourceAgent extends Agent {
 		//Create Receiver from PoCA
 		channelFromPoCAgent = new TestACLReceiverChannel(DOMAIN_ID, PoCAName+"PoC", getName());
 		
+		//Start communication channel receiver
+		addBehaviour(tbf.wrap(new OneShotBehaviour(this) {
+
+			@Override
+			public void action() {
+				channelFromPoCAgent.startReading();					
+			}				
+		}));
+		
 		//Periodically add messages from PoCA to JADE message queue.
 		addBehaviour(tbf.wrap(new TickerBehaviour(this, TICK_TIME_LONG) {
 
@@ -1216,13 +1242,15 @@ public class ResourceAgent extends Agent {
 			protected void onTick() {
 				
 				try {
-					//System.out.println("Listening for messages on " + channelFromPoCAgent.getTopic());
+					//System.out.println("Checking messages from PoCA on channel " + channelFromPoCAgent.getTopicName());
 					ACLMessage message = channelFromPoCAgent.getMessage();					
 					
 					if (message != null) {
 						
-						//System.out.println("Posting Message");
+						System.out.println("Posting Message");
 						aclMessages.add(message);						
+					} else {
+						//System.out.println("No message received");
 					}
 				} catch (NullPointerException e) {
 					//Do Nothing

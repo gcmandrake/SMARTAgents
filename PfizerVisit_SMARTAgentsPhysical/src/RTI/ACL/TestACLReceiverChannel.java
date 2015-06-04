@@ -160,6 +160,10 @@ public class TestACLReceiverChannel extends DataReaderAdapter {
 
     public void on_data_available(DataReader reader) {    	
     	
+    	
+    	System.out.println("TestACLReceiver: Message Received");
+
+    	
     	TestACLDataReader testACLReader =
             (TestACLDataReader)reader;
         
@@ -178,9 +182,9 @@ public class TestACLReceiverChannel extends DataReaderAdapter {
                 SampleInfo info = (SampleInfo)_infoSeq.get(i);
 
                 if (info.valid_data) {
-                   TestACL aclReceived = ((TestACL)_dataSeq.get(i));
-                   acl = new TestACL(aclReceived);   
-                   //Deserialise message
+                	TestACL aclReceived = ((TestACL)_dataSeq.get(i));
+                	acl = new TestACL(aclReceived);   
+                	//Deserialise message
    					String serialisedString = acl.serialisedMessage;
    					byte [] messageData = Base64Coder.decode(serialisedString);
    					ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(messageData));
@@ -189,10 +193,11 @@ public class TestACLReceiverChannel extends DataReaderAdapter {
    					ois.close();			    
    			   
    					anotherMessage = aclMessage;
+   					
    					if (anotherMessage != null) {
-   						//System.out.println("TestACLReceiver: Message Received");						
+   						System.out.println("TestACLReceiver: Message Received");						
    						receivedMessages.put(anotherMessage);
-   						//System.out.println("Messages in queue: " + receivedMessages.size());
+   						System.out.println("Messages in queue: " + receivedMessages.size());
    				}
    					
                 }
@@ -220,5 +225,10 @@ public class TestACLReceiverChannel extends DataReaderAdapter {
 		
 		return receivedMessages.poll();
 	}	
+	
+	public String getTopicName() {
+		
+		return topic.get_name();
+	}
 
 }

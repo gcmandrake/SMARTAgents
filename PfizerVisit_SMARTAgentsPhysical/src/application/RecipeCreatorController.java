@@ -4,14 +4,20 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import RTI.ACL.Base64Coder;
 import RTI.ACL.TestACL;
 import RTI.keyValue.KeyValuePairPublisherModule;
 import RTI.keyValue.KeyValuePairSubscriberModule;
+import RTI.keyValue.KeyValueSimple;
 import resourceAgents.Requirement;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
@@ -29,6 +35,7 @@ import javafx.stage.Stage;
 public class RecipeCreatorController {
 	
 	final long CONTAINER_MAX_VOLUME = 4;
+	final String POINT_OF_CONTACT_CAPABILITY = "Point_Of_Contact";
 	final String LOAD_CONTAINER_CAPABILITY = "load_container"; 
 	final String FILL_RED_CAPABILITY = "fill_red";
 	final String FILL_YELLOW_CAPABILITY = "fill_yellow";
@@ -41,6 +48,9 @@ public class RecipeCreatorController {
 	final String TEST_QUANTITY_ARGUMENT = "test_quantity";
 	final String LABEL_LID_ARGUMENT = "label_lid";
 	
+	final String ANNOUNCE_NEW_STRING = "announce_new";
+	final String ANNOUNCE_INFO_STRING = "announce_info";	
+	
 	final int DOMAIN_ID = 5;
 	final String RECIPE_TOPIC_NAME = "recipe_topic";
 	final String RECIPE_DISPATCH_NAME = "Recipe_Dispatch";
@@ -49,22 +59,24 @@ public class RecipeCreatorController {
 	private RTI.keyValue.KeyValuePairPublisherModule publisher;
 	private RTI.keyValue.KeyValuePairSubscriberModule subscriber;
 	
+	private ConcurrentHashMap<String, Integer> timeouts;
+	
 	@FXML
 	CheckBox PoCOnline;
 	@FXML
-	CheckBox LoadContainerOnline;
+	CheckBox loadContainerOnline;
 	@FXML
-	CheckBox FillRedOnline;
+	CheckBox fillRedOnline;
 	@FXML
-	CheckBox FillYellowOnline;
+	CheckBox fillYellowOnline;
 	@FXML
-	CheckBox FillBlueOnline;
+	CheckBox fillBlueOnline;
 	@FXML
-	CheckBox TestOnline;
+	CheckBox testOnline;
 	@FXML
-	CheckBox LidOnline;
+	CheckBox lidOnline;
 	@FXML
-	CheckBox DispatchOnline;
+	CheckBox dispatchOnline;
 
 	
 	@FXML
@@ -87,10 +99,12 @@ public class RecipeCreatorController {
 	TextField testQuantity;
 	
 	@FXML
-	TextField labelPrint;
+	TextField labelPrint;	
 	
 	boolean goClicked = false;
 	
+	KeyValueSimple message;
+		
 	private Main mainApp;
 	
 	public RecipeCreatorController() {
@@ -102,22 +116,22 @@ public class RecipeCreatorController {
 	private void initialize() {
 		
 		PoCOnline.setSelected(false);
-		LoadContainerOnline.setSelected(false);
-		FillRedOnline.setSelected(false);
-		FillYellowOnline.setSelected(false);
-		FillBlueOnline.setSelected(false);
-		TestOnline.setSelected(false);
-		LidOnline.setSelected(false);
-		DispatchOnline.setSelected(false);
+		loadContainerOnline.setSelected(false);
+		fillRedOnline.setSelected(false);
+		fillYellowOnline.setSelected(false);
+		fillBlueOnline.setSelected(false);
+		testOnline.setSelected(false);
+		lidOnline.setSelected(false);
+		dispatchOnline.setSelected(false);
 		
 		PoCOnline.setDisable(true);
-		LoadContainerOnline.setDisable(true);
-		FillRedOnline.setDisable(true);
-		FillYellowOnline.setDisable(true);
-		FillBlueOnline.setDisable(true);
-		TestOnline.setDisable(true);
-		LidOnline.setDisable(true);
-		DispatchOnline.setDisable(true);
+		loadContainerOnline.setDisable(true);
+		fillRedOnline.setDisable(true);
+		fillYellowOnline.setDisable(true);
+		fillBlueOnline.setDisable(true);
+		testOnline.setDisable(true);
+		lidOnline.setDisable(true);
+		dispatchOnline.setDisable(true);
 		
 		loadContainer.setSelected(false);
 		lidContainer.setSelected(false);
@@ -133,26 +147,144 @@ public class RecipeCreatorController {
 		
 		labelPrint.setText("");
 		
+		timeouts = new ConcurrentHashMap<String, Integer>();		
+		
 		publisher = new KeyValuePairPublisherModule(DOMAIN_ID, RECIPE_DISPATCH_NAME, false);
-		publisher.createTopic(RECIPE_TOPIC_NAME);
+		publisher.createTopic(RECIPE_TOPIC_NAME);		
 		
-		subscriber = new KeyValuePairSubscriberModule(DOMAIN_ID, GENERAL_PUBLISHER_TOPIC, true);
+		subscriber = new KeyValuePairSubscriberModule(DOMAIN_ID, "Recipe Dispatch", true);
 		
-		new Timer().schedule(
-			    new TimerTask() {
-
-			        @Override
-			        public void run() {
-			            System.out.println("ping");
-			        }
-			    }, 0, 5000);
+		//Subscriber must be in seperate thread
+		Thread subscriberThread = new Thread(new Runnable() {
+			public void run() {
+				
+				subscriber.startReading();
+		     }
+		});
 		
+		subscriberThread.start();
+		
+		//Every 0.25 seconds get a message
+		new Timer().schedule(new TimerTask() {
+						        @Override
+						        public void run() {						        	
+						            findResources();
+						        }
+								}, 0, 250);
+		
+		new Timer().schedule(new TimerTask() {
+								@Override
+								public void run() {
+								decrementAndCheckTimeouts();
+								}
+								}, 0, 5000);			
+		
+	}
+	
+	private void decrementAndCheckTimeouts() {
+		
+		Integer zero = new Integer(0);
+		
+		for (Map.Entry<String, Integer> entry : timeouts.entrySet()) {
+		    
+			Integer newTimeout = entry.getValue()-5;
+			if (newTimeout.compareTo(zero) <= 0 ) {
+				
+				if (entry.getKey().equalsIgnoreCase(POINT_OF_CONTACT_CAPABILITY)) {					
+					PoCOnline.setSelected(false);	
+					
+				} else if (entry.getKey().equalsIgnoreCase(LOAD_CONTAINER_CAPABILITY)) {					
+					loadContainerOnline.setSelected(false);							
+					
+				} else if (entry.getKey().equalsIgnoreCase(FILL_RED_CAPABILITY)) {					
+					fillRedOnline.setSelected(false);						
+					
+				} else if (entry.getKey().equalsIgnoreCase(FILL_YELLOW_CAPABILITY)) {					
+					fillYellowOnline.setSelected(false);
+										
+				} else if (entry.getKey().equalsIgnoreCase(FILL_BLUE_CAPABILITY)) {					
+					fillBlueOnline.setSelected(false);						
+					
+				} else if (entry.getKey().equalsIgnoreCase(TEST_CONTAINER_CAPABILITY)) {					
+					testOnline.setSelected(false);					
+					
+				} else if (entry.getKey().equalsIgnoreCase(LID_CONTAINER_CAPABILITY)) {					
+					lidOnline.setSelected(false);					
+					
+				} else if (entry.getKey().equalsIgnoreCase(DISPATCH_CONTAINER_CAPABILITY)) {					
+					dispatchOnline.setSelected(false);							
+				}
+				
+				timeouts.put(entry.getKey(), zero);
+				
+			} else {
+				
+				timeouts.put(entry.getKey(), newTimeout);
+				
+			}
+			
+		}
 		
 	}
 	
 	public boolean isGoClicked() {
 		return goClicked;
 	}
+	
+	private void findResources() {
+		
+		//System.out.println("Checking for Capabilities");
+		
+		message = subscriber.getReceivedKeyValuePair(GENERAL_PUBLISHER_TOPIC);
+		
+		if (message != null) {			
+			
+			if (message.getKey().equalsIgnoreCase(ANNOUNCE_NEW_STRING) || message.getKey().equalsIgnoreCase(ANNOUNCE_INFO_STRING)) {
+				
+				//Parse into agent name and capabilities
+				String messageContent = message.getValue();
+				
+				if (messageContent.contains(POINT_OF_CONTACT_CAPABILITY)) {					
+					PoCOnline.setSelected(true);	
+					timeouts.put(POINT_OF_CONTACT_CAPABILITY, new Integer(30));
+				}
+				
+				if (messageContent.contains(LOAD_CONTAINER_CAPABILITY)) {					
+					loadContainerOnline.setSelected(true);		
+					timeouts.put(LOAD_CONTAINER_CAPABILITY, new Integer(30));
+					
+				} else if (messageContent.contains(FILL_RED_CAPABILITY)) {					
+					fillRedOnline.setSelected(true);	
+					timeouts.put(FILL_RED_CAPABILITY, new Integer(30));
+					
+				} else if (messageContent.contains(FILL_YELLOW_CAPABILITY)) {					
+					fillYellowOnline.setSelected(true);
+					timeouts.put(FILL_YELLOW_CAPABILITY, new Integer(30));
+					
+				} else if (messageContent.contains(FILL_BLUE_CAPABILITY)) {					
+					fillBlueOnline.setSelected(true);	
+					timeouts.put(FILL_BLUE_CAPABILITY, new Integer(30));
+					
+				} else if (messageContent.contains(TEST_CONTAINER_CAPABILITY)) {					
+					testOnline.setSelected(true);				
+					timeouts.put(TEST_CONTAINER_CAPABILITY, new Integer(30));
+					
+				} else if (messageContent.contains(LID_CONTAINER_CAPABILITY)) {					
+					lidOnline.setSelected(true);
+					timeouts.put(LID_CONTAINER_CAPABILITY, new Integer(30));
+					
+				} else if (messageContent.contains(DISPATCH_CONTAINER_CAPABILITY)) {					
+					dispatchOnline.setSelected(true);		
+					timeouts.put(DISPATCH_CONTAINER_CAPABILITY, new Integer(30));
+				}
+				
+				
+			}
+		}
+	
+		
+	}
+	
 	
 	@SuppressWarnings("deprecation")
 	@FXML

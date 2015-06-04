@@ -48,7 +48,7 @@ public class TestACLReceiverRequestReply {
 				
 		serviceName = "DirectCommunication-" + requesterName + "-to-" + replierName;
 		
-		System.out.println("Creating ACLReceiver with topic " + serviceName);
+		System.out.println("+Creating ACLReceiver with topic " + serviceName);
 		
 		//Create Participant
 		participant = DomainParticipantFactory.get_instance().create_participant(

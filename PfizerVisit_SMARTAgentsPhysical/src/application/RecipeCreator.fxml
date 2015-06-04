@@ -77,13 +77,13 @@
                   <Label text="Print Label" GridPane.rowIndex="8" />
                   <CheckBox fx:id="PoCOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="1" />
                   <Label text="Point of Contact" GridPane.rowIndex="1" />
-                  <CheckBox fx:id="LoadContainerOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="2" />
-                  <CheckBox fx:id="FillRedOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="3" />
-                  <CheckBox fx:id="FillBlueOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="4" />
-                  <CheckBox fx:id="FillYellowOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="5" />
-                  <CheckBox fx:id="TestOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="6" />
-                  <CheckBox fx:id="LidOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="7" />
-                  <CheckBox fx:id="DispatchOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="9" />
+                  <CheckBox fx:id="loadContainerOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="2" />
+                  <CheckBox fx:id="fillRedOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="3" />
+                  <CheckBox fx:id="fillBlueOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="4" />
+                  <CheckBox fx:id="fillYellowOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="5" />
+                  <CheckBox fx:id="testOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="6" />
+                  <CheckBox fx:id="lidOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="7" />
+                  <CheckBox fx:id="dispatchOnline" mnemonicParsing="false" GridPane.columnIndex="4" GridPane.rowIndex="9" />
                   <Label text="Create Recipe" GridPane.columnIndex="2">
                      <font>
                         <Font name="System Bold" size="15.0" />

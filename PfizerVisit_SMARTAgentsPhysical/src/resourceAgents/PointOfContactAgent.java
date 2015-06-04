@@ -288,7 +288,7 @@ public class PointOfContactAgent extends ResourceAgent {
 							
 							
 							String targetAgent = entry.getKey();
-							System.out.println("Sent request to " + entry.getKey());
+							//System.out.println("Sending request to " + entry.getKey());
 							Requirement requestedRequirement = entry.getValue();
 							
 							//Compose Request
@@ -302,8 +302,8 @@ public class PointOfContactAgent extends ResourceAgent {
 							
 							//Send message
 							RequestReplyMessageChannel channel = channelsToAgents.get(targetAgent);
-							channel.sendMessageToAgent(request);							
-							//System.out.println("message sent to " + targetAgent);
+							channel.sendMessageToAgent(request);				
+							//System.out.println("message sent to " + targetAgent + " on topic " + channel.getChannelToAgentTopic());
 						}
 							
 					} catch (IOException e) {						

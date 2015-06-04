@@ -236,6 +236,7 @@ public class KeyValuePairSubscriberModule extends DataReaderAdapter {
 	            try {     
 	            	//System.out.println("general subscriber is waiting");
 	            	//System.out.println("Subscriber has " + readers.size() + " topics");
+	            	//System.out.println("Subscriber has " + receivedKeyValuePairQueues.get(GENERAL_TOPIC_NAME).size());
 	                Thread.sleep(receivePeriodMillisec);  // in millisec
 	            } catch (InterruptedException ix) {
 	                System.err.println("INTERRUPTED");
@@ -344,15 +345,15 @@ public class KeyValuePairSubscriberModule extends DataReaderAdapter {
     //Keeps the received pairs until the agent requests them via the subscriber.
     public KeyValueSimple getReceivedKeyValuePair(String topicName) {    	
     	
-    	if (receivedKeyValuePairQueues.get(topicName).size() != 0) {
-	    	/*System.out.println(myAgentName + " number of queued messages: " + receivedKeyValuePairQueues.get(topicName).size() + " ");
+    	/*if (receivedKeyValuePairQueues.get(topicName).size() != 0) {
+	    	System.out.println(myAgentName + " number of queued messages: " + receivedKeyValuePairQueues.get(topicName).size() + " ");
 	    	Iterator<KeyValueSimple> iter = receivedKeyValuePairQueues.get(topicName).iterator();
 	    	while (iter.hasNext()) {
 	    		KeyValueSimple kvs = iter.next();
 	    		System.out.print(" | " + kvs.getKey() + " : " + kvs.getValue());
 	    	}
-	    	System.out.println(); */
-    	}
+	    	System.out.println(); 
+	    }*/
     	
     	return receivedKeyValuePairQueues.get(topicName).poll();       	
 		

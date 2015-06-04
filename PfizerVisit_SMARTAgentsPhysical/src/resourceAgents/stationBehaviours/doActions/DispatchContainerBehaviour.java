@@ -59,6 +59,8 @@ public class DispatchContainerBehaviour {
             reply = client.send(req.toString());
             replyMsg = new Message(reply);
             interpret(replyMsg);
+            
+            Thread.sleep(15000);
 		    
 		    return true;
 	    

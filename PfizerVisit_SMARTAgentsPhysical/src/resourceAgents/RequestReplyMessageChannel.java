@@ -11,12 +11,7 @@ import RTI.ACL.TestACLMessengerRequestReply;
 import RTI.ACL.TestACLReceiverChannel;
 import RTI.ACL.TestACLReceiverRequestReply;
 
-public class RequestReplyMessageChannel implements Serializable {	
-	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 595517035217449961L;
+public class RequestReplyMessageChannel {	
 	
 	//Direct messaging channel to agent
 	private TestACLMessengerChannel channelToAgent;	
@@ -56,5 +51,10 @@ public class RequestReplyMessageChannel implements Serializable {
 	public void sendMessageToAgent(ACLMessage message) {
 		
 		this.channelToAgent.sendACLMessage(message);
+	}
+	
+	public String getChannelToAgentTopic() {
+		
+		return channelToAgent.getTopicName();
 	}
 }

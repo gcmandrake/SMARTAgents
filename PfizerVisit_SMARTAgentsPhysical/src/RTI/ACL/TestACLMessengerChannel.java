@@ -105,7 +105,7 @@ public class TestACLMessengerChannel {
 	
 	public void sendACLMessage(ACLMessage message) {
 		
-		//System.out.println("Sending ACLMessage on topic " + requester.getRequestDataWriter().get_topic().get_name());
+		//System.out.println("Sending ACLMessage on topic");
 		
 		String serialisedString = null;
 		
@@ -132,7 +132,7 @@ public class TestACLMessengerChannel {
         instance.serialisedMessage = serialisedString;
 		//Create a sample writer
 		writer.write(instance, instance_handle);
-		
+		System.out.println("Message sent!");
 		//Do not wait for a reply!		
 	}
 	
@@ -146,6 +146,11 @@ public class TestACLMessengerChannel {
                 delete_participant(participant);
         }
 	}   
+	
+	public String getTopicName() {
+		
+		return topic.get_name();
+	}
 	
 	
 	

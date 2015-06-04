@@ -48,6 +48,8 @@ public class FillStationPassThroughBehaviour {
 		    replyMsg = new Message(reply);
 		    interpret(replyMsg);
 		    
+		    Thread.sleep(10000);
+		    
 		    return true;
 	    
 		} catch(Exception e) {

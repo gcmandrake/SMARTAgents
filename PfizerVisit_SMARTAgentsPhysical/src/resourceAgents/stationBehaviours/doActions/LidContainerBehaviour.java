@@ -65,6 +65,8 @@ public class LidContainerBehaviour {
             reply = client.send(req.toString());
             replyMsg = new Message(reply);
             interpret(replyMsg);
+            
+            Thread.sleep(30000);
 		    
 		    return true;
 	    
