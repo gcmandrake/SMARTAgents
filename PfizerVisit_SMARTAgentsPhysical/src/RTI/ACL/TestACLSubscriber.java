@@ -58,6 +58,7 @@ modification history
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Random;
 
 import com.rti.dds.domain.*;
 import com.rti.dds.infrastructure.*;
@@ -126,10 +127,16 @@ public class TestACLSubscriber {
             /* To customize participant QoS, use
                the configuration file
                USER_QOS_PROFILES.xml */
+        	
+        	DomainParticipantQos dpqos = new DomainParticipantQos();
+            DomainParticipantFactory.TheParticipantFactory.get_default_participant_qos(dpqos);
+
+            Random random = new Random(System.currentTimeMillis());
+        	dpqos.wire_protocol.rtps_app_id = dpqos.wire_protocol.rtps_app_id + random.nextInt();
     
             participant = DomainParticipantFactory.TheParticipantFactory.
                 create_participant(
-                    domainId, DomainParticipantFactory.PARTICIPANT_QOS_DEFAULT,
+                    domainId, dpqos,
                     null /* listener */, StatusKind.STATUS_MASK_NONE);
             if (participant == null) {
                 System.err.println("create_participant error\n");
@@ -190,8 +197,7 @@ public class TestACLSubscriber {
             for (int count = 0;
                  (sampleCount == 0) || (count < sampleCount);
                  ++count) {
-                System.out.println("TestACL subscriber sleeping for "
-                                   + receivePeriodSec + " sec...");
+                //System.out.println("TestACL subscriber sleeping for " + receivePeriodSec + " sec...");
                 try {
                     Thread.sleep(receivePeriodSec * 1000);  // in millisec
                 } catch (InterruptedException ix) {
@@ -245,8 +251,7 @@ public class TestACLSubscriber {
                     SampleInfo info = (SampleInfo)_infoSeq.get(i);
 
                     if (info.valid_data) {
-                        System.out.println(
-                            ((TestACL)_dataSeq.get(i)).toString("Received",0));
+                        //System.out.println(((TestACL)_dataSeq.get(i)).toString("Received",0));
 
 
                     }

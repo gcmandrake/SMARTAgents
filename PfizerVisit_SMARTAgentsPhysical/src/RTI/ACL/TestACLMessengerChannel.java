@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Base64;
+import java.util.Random;
 
 import RTI.keyValue.KeyValuePairDataWriter;
 import RTI.keyValue.KeyValuePairTypeSupport;
@@ -23,6 +24,7 @@ import com.rti.connext.requestreply.Requester;
 import com.rti.connext.requestreply.RequesterParams;
 import com.rti.dds.domain.DomainParticipant;
 import com.rti.dds.domain.DomainParticipantFactory;
+import com.rti.dds.domain.DomainParticipantQos;
 import com.rti.dds.infrastructure.InstanceHandle_t;
 import com.rti.dds.infrastructure.StatusKind;
 import com.rti.dds.infrastructure.Duration_t;
@@ -45,11 +47,17 @@ public class TestACLMessengerChannel {
 		
 		System.out.println("Creating ACLMessenger with topic " + topicName);
 		
-		//Create participant
+		DomainParticipantQos dpqos = new DomainParticipantQos();
+        DomainParticipantFactory.TheParticipantFactory.get_default_participant_qos(dpqos);
+
+        Random random = new Random(System.currentTimeMillis());
+    	dpqos.wire_protocol.rtps_app_id = dpqos.wire_protocol.rtps_app_id + random.nextInt();
+
+       	//Create participant
 		participant = DomainParticipantFactory.get_instance()
 				.create_participant(
 						domainID, 
-						DomainParticipantFactory.PARTICIPANT_QOS_DEFAULT,
+						dpqos,
 						null,
 						StatusKind.STATUS_MASK_NONE
 				);

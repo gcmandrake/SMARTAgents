@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import resourceAgents.Requirement;
 import RTI.ACL.Base64Coder;
@@ -105,10 +106,16 @@ public class KeyValuePairPublisherModule {
         // --- Create participant --- //
 
         //To customize participant QoS, use the configuration file  USER_QOS_PROFILES.xml
+		
+		DomainParticipantQos dpqos = new DomainParticipantQos();
+        DomainParticipantFactory.TheParticipantFactory.get_default_participant_qos(dpqos);
+
+        Random random = new Random(System.currentTimeMillis());
+    	dpqos.wire_protocol.rtps_app_id = dpqos.wire_protocol.rtps_app_id + random.nextInt();
 
        participant = DomainParticipantFactory.TheParticipantFactory.
             create_participant(
-                domainId, DomainParticipantFactory.PARTICIPANT_QOS_DEFAULT,
+                domainId, dpqos,
                 null, StatusKind.STATUS_MASK_NONE);
         if (participant == null) {
             System.err.println("create_participant error\n");

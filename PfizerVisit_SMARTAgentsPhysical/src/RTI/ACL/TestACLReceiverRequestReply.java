@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,6 +31,7 @@ import com.rti.connext.requestreply.Replier;
 import com.rti.connext.requestreply.ReplierParams;
 import com.rti.dds.domain.DomainParticipant;
 import com.rti.dds.domain.DomainParticipantFactory;
+import com.rti.dds.domain.DomainParticipantQos;
 import com.rti.dds.infrastructure.Duration_t;
 import com.rti.dds.infrastructure.StatusKind;
 
@@ -50,10 +52,16 @@ public class TestACLReceiverRequestReply {
 		
 		System.out.println("+Creating ACLReceiver with topic " + serviceName);
 		
+		DomainParticipantQos dpqos = new DomainParticipantQos();
+        DomainParticipantFactory.TheParticipantFactory.get_default_participant_qos(dpqos);
+
+        Random random = new Random(System.currentTimeMillis());
+    	dpqos.wire_protocol.rtps_app_id = dpqos.wire_protocol.rtps_app_id + random.nextInt();
+		
 		//Create Participant
 		participant = DomainParticipantFactory.get_instance().create_participant(
 				domainID,
-				DomainParticipantFactory.PARTICIPANT_QOS_DEFAULT,
+				dpqos,
 				null, 
 				StatusKind.STATUS_MASK_NONE);
 		
@@ -96,7 +104,7 @@ public class TestACLReceiverRequestReply {
 			    ois.close();
 			    
 			    if (aclMessage != null) {
-			    	System.out.println(aclMessage.getConversationId());
+			    	//System.out.println(aclMessage.getConversationId());
 			    }
 			    
 			    ACLMessage anotherMessage = aclMessage;

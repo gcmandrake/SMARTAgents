@@ -64,6 +64,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -113,10 +114,16 @@ public class KeyValuePairSubscriberModule extends DataReaderAdapter {
         /* To customize participant QoS, use
            the configuration file
            USER_QOS_PROFILES.xml */
+    	
+    	DomainParticipantQos dpqos = new DomainParticipantQos();
+        DomainParticipantFactory.TheParticipantFactory.get_default_participant_qos(dpqos);
+
+        Random random = new Random(System.currentTimeMillis());
+    	dpqos.wire_protocol.rtps_app_id = dpqos.wire_protocol.rtps_app_id + random.nextInt();
 
         participant = DomainParticipantFactory.TheParticipantFactory.
             create_participant(
-                domainId, DomainParticipantFactory.PARTICIPANT_QOS_DEFAULT,
+                domainId, dpqos,
                 null /* listener */, StatusKind.STATUS_MASK_NONE);
         if (participant == null) {
             System.err.println("create_participant error\n");
@@ -250,8 +257,11 @@ public class KeyValuePairSubscriberModule extends DataReaderAdapter {
     
     public void removeTopic(String topicName) {
     	
-    	topics.remove(topicName);
-    	readers.remove(topicName).delete_contained_entities();
+    	if (topics.containsKey(topicName)) {
+    	
+	    	topics.remove(topicName);    
+	    	readers.remove(topicName).delete_contained_entities();
+    	}
     }
     
     public boolean containsTopic(String topicName) {

@@ -54,6 +54,8 @@ public class FillStationBehaviour {
 		    replyMsg = new Message(reply);
 		    interpret(replyMsg);
 		    
+		    Thread.sleep(7000 + (1500 * loadMode));
+		    
 		    return true;
 	    
 		} catch(Exception e) {

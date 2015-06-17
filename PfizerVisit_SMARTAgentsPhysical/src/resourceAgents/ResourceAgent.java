@@ -60,7 +60,7 @@ public class ResourceAgent extends Agent {
 	
 	protected final int DOMAIN_ID = 5;
 	protected final String GENERAL_PUBLISHER_TOPIC = "general_announce";	 
-	protected final long TICK_TIME_PRODUCT = 3000;
+	protected final long TICK_TIME_PRODUCT = 10000;
 	protected final long TICK_TIME_REANNOUNCE = 10000;
 	protected final long TICK_TIME_LONG = 500;
 	protected final long TICK_TIME_SHORT = 100;
@@ -88,6 +88,7 @@ public class ResourceAgent extends Agent {
 
 	//Stores the last barcode scanned
 	protected String lastBarcodeScanned = "XXXX";	
+	protected ReentrantLock barcodeInUseLock = new ReentrantLock();
 	
 	protected String[] fakeBarcodes = {"AAAA", "BBBB", "CCCC"};
 	protected Boolean[] barcodesInUse = {false, false, false};
@@ -184,7 +185,7 @@ public class ResourceAgent extends Agent {
 		checkForRequests();		
 		
 		//11: Periodically look for updates on productStatusSubscibers
-		//receiveProductStatusUpdates();
+		receiveProductStatusUpdates();
 		
 		//12: connect to my PLC
 		//TODO: Check this works
@@ -256,16 +257,16 @@ public class ResourceAgent extends Agent {
 			@Override
 			protected void onTick() {
 				
-				if (!hardwareInUseLock.isLocked()) {
+				if (!hardwareInUseLock.isLocked() && !barcodeInUseLock.isLocked()) {
 				
 					String barcode = parseReturnedBarcode(getCurrentBarcode());					
 										
 					if (!barcode.equalsIgnoreCase(lastBarcodeScanned)) {
 						lastBarcodeScanned = barcode;
-						//System.out.println(getName() + " scanned barcode " + barcode + ". Checking toDoList.");
+						System.out.println(getName() + " scanned barcode " + barcode + ". Checking toDoList.");
 						performActionOnNewBarcode(barcode);
 					} else {
-						//System.out.println(getName() + " scanned barcode " + barcode + ". Not a new barcode.");
+						System.out.println(getName() + " scanned barcode " + barcode + ". Not a new barcode.");
 					}
 					
 				}
@@ -296,102 +297,123 @@ public class ResourceAgent extends Agent {
 	//Deal with the new product. Do we need to perform anything?
 	protected void performActionOnNewBarcode(String barcode) {
 		
+		boolean somethingHasBeenDone = false;
+
 		try{	
 			
 			referencedRecipesLock.lock();
 			toDoListLock.lock();
+			barcodeInUseLock.lock();			
 			
 			//Do we have a job for this barcode?				
 			//1: Search all the available recipes for their Barcodes and compare to toDo list
-			for (Map.Entry<String, Recipe> entry : referencedRecipes.entrySet()) {							
+			if (referencedRecipes.size() == 0) {
 				
-				System.out.println(getName() + "Searching toDo list " + (referencedRecipes.size()) + " | ");
-				System.out.println("Hash Key: " + entry.getKey() + " Item Barcode: " + entry.getValue().getIdentifier());
+				//PassThrough: no recipes at all!
+				//nothing to do with this barcode. Release it.
+				System.out.println(getName() + " releasing barcode " + barcode + ". I have no requirements to perform here.");
+				releaseProduct();
 				
-				if (entry.getValue().getIdentifier().equalsIgnoreCase(barcode)) {
-					//this is the matching recipe for the barcode
-					//Do we have an entry in the toDo list for this barcode?
-					String recipeUID = entry.getValue().getUID();
+			} else {			
+			
+				for (Map.Entry<String, Recipe> entry : referencedRecipes.entrySet()) {							
 					
-					if (toDoList.containsKey(recipeUID)) {
-						//toDolist contains an entry
+					System.out.println(getName() + "Searching toDo list " + (referencedRecipes.size()) + " | ");
+					System.out.println("Hash Key: " + entry.getKey() + " Item Barcode: " + entry.getValue().getIdentifier());
+					
+					if (entry.getValue().getIdentifier().equalsIgnoreCase(barcode)) {
+						//this is the matching recipe for the barcode
+						//Do we have an entry in the toDo list for this barcode?
+						String recipeUID = entry.getValue().getUID();
 						
-						System.out.print("Barcode found in ToDo list | ");
-						
-						//Are there any requirments listed under it?
-						if (!toDoList.get(recipeUID).isEmpty()) {								
+						if (toDoList.containsKey(recipeUID)) {
+							//toDolist contains an entry
 							
-							System.out.print("Requirements Exist | ");
+							System.out.print("Barcode found in ToDo list | ");
 							
-							ArrayList<Requirement> requirements = toDoList.get(recipeUID);
-							
-							//Argh to much nesting
-							
-							//For each requirement stored, have the preconditions been satisfied?
-							//Iterator<Requirement> iterRequirements = requirements.iterator();
-							Boolean anyRequirementsPossible = false;
-							
-							for (int i = 0; i < requirements.size(); i++) {
+							//Are there any requirments listed under it?
+							if (!toDoList.get(recipeUID).isEmpty()) {								
 								
-								//Requirement requirement = iterRequirements.next();
-								Requirement requirement = requirements.get(i);
-								//Have preconditions been satisfied?								
-								ArrayList<Integer> preconditions = requirement.getRequirementsBefore();
-								HashMap<Integer, Requirement> recipeRequirements = referencedRecipes.get(requirement.getRecipeUID()).getRequirements();
+								System.out.print("Requirements Exist | ");
 								
-								//For every pre-requirement
-								//more nesting ;_;
-								Boolean preReqsMet = true;
-								Iterator<Integer> iterPreconditions = preconditions.iterator();
-								while (iterPreconditions.hasNext()) {
+								ArrayList<Requirement> requirements = toDoList.get(recipeUID);
+								
+								//Argh to much nesting
+								
+								//For each requirement stored, have the preconditions been satisfied?
+								//Iterator<Requirement> iterRequirements = requirements.iterator();
+								Boolean anyRequirementsPossible = false;
+								
+								for (int i = 0; i < requirements.size(); i++) {
 									
-									Integer preconditionIdentifier = iterPreconditions.next();
-									Requirement preRequirement = recipeRequirements.get(preconditionIdentifier);
+									//Requirement requirement = iterRequirements.next();
+									Requirement requirement = requirements.get(i);
+									//Have preconditions been satisfied?								
+									ArrayList<Integer> preconditions = requirement.getRequirementsBefore();
+									HashMap<Integer, Requirement> recipeRequirements = referencedRecipes.get(requirement.getRecipeUID()).getRequirements();
 									
-									System.out.println("Requirement: " + requirement.getRequiredCapability() + " has a pre-requirement: " + preRequirement.getRequiredCapability() + " : " + preRequirement.getStatus());
-									
-									// ;_;
-									if (preRequirement.getStatus().equalsIgnoreCase(STATUS_COMPLETED)) {
-										//Pre-Req met. Do nothing.
-									} else {
-										//Pre-Req not met. Cannot do this requirement.
-										preReqsMet = false;
+									//For every pre-requirement
+									//more nesting ;_;
+									Boolean preReqsMet = true;
+									Iterator<Integer> iterPreconditions = preconditions.iterator();
+									while (iterPreconditions.hasNext()) {
+										
+										Integer preconditionIdentifier = iterPreconditions.next();
+										Requirement preRequirement = recipeRequirements.get(preconditionIdentifier);
+										
+										System.out.println("Requirement: " + requirement.getRequiredCapability() + " has a pre-requirement: " + preRequirement.getRequiredCapability() + " : " + preRequirement.getStatus());
+										
+										// ;_;
+										if (preRequirement.getStatus().equalsIgnoreCase(STATUS_COMPLETED)) {
+											//Pre-Req met. Do nothing.
+										} else {
+											//Pre-Req not met. Cannot do this requirement.
+											preReqsMet = false;
+										}
+										
 									}
+									
+									if (preReqsMet) {
+										
+										System.out.println("Preconditions met. Performing requirement.");
+										
+										anyRequirementsPossible = true;
+										//Remove it from the toDo list:											
+										Requirement requirementsToPerform = toDoList.get(recipeUID).remove(0);
+										System.out.println(getName() + " conditions met for " + requirementsToPerform.getRequiredCapability());			
+										somethingHasBeenDone = true;
+										performRequirement(requirementsToPerform);
+									} 									
+								}	
+								
+								if (anyRequirementsPossible == false) {
+									System.out.println("Preconditions not met. Cannot perform requirement.");
+									//No requirements are possible currently.
+									System.out.println(getName() + " releasing barcode " + barcode + ". No requirements currently possible.");		
+									somethingHasBeenDone = true;
+									releaseProduct();
 									
 								}
 								
-								if (preReqsMet) {
-									
-									System.out.println("Preconditions met. Performing requirement.");
-									
-									anyRequirementsPossible = true;
-									//Remove it from the toDo list:											
-									Requirement requirementsToPerform = toDoList.get(recipeUID).remove(0);
-									System.out.println(getName() + " conditions met for " + requirementsToPerform.getRequiredCapability());
-									performRequirement(requirementsToPerform);
-								} 									
-							}	
-							
-							if (anyRequirementsPossible == false) {
-								System.out.println("Preconditions not met. Cannot perform requirement.");
-								//No requirements are possible currently.
-								System.out.println(getName() + " releasing barcode " + barcode + ". No requirements currently possible.");
+							} else {								
+								//toDoList for that recipe is empty. Release it.
+								System.out.println(getName() + " releasing barcode " + barcode + ". Recipe is empty.");
+								somethingHasBeenDone = true;
 								releaseProduct();
 								
-							}
+							}	
 							
-						} else {								
-							//toDoList for that recipe is empty. Release it.
-							System.out.println(getName() + " releasing barcode " + barcode + ". Recipe is empty.");
+						} else {
+							//nothing to do with this barcode. Release it.
+							System.out.println(getName() + " releasing barcode " + barcode + ". I have no requirements to perform here.");
+							System.out.println("ToDoList Size: " + toDoList.size());
+							System.out.println("ReferencedRecipes Size: " + referencedRecipes.size());
+							somethingHasBeenDone = true;
 							releaseProduct();
-						}	
+						}
 						
-					} else {
-						//nothing to do with this barcode. Release it.
-						System.out.println(getName() + " releasing barcode " + barcode + ". I have no requirements to perform here.");
-						releaseProduct();
-					}
-				}					
+					} 				
+				}
 			}				
 			
 		} catch (ConcurrentModificationException e) {
@@ -401,11 +423,18 @@ public class ResourceAgent extends Agent {
 			
 		} finally {
 			
+			if (!somethingHasBeenDone) {
+				releaseProduct();
+			}
+			
 			if (referencedRecipesLock.isHeldByCurrentThread()) {
 				referencedRecipesLock.unlock();	
 			}
 			if (toDoListLock.isHeldByCurrentThread()) {
 				toDoListLock.unlock();	
+			}
+			if (barcodeInUseLock.isHeldByCurrentThread()) {
+				barcodeInUseLock.unlock();
 			}
 		}
 	}
@@ -430,7 +459,7 @@ public class ResourceAgent extends Agent {
 					sendMessagesToPLCReleaseContainer();	
 				}
 				
-				System.out.println(getName() + " releasing container.");
+				//System.out.println(getName() + " releasing container.");
 				
 				} finally {				
 					
@@ -504,7 +533,7 @@ public class ResourceAgent extends Agent {
 					//System.out.println(getName() + ": Hardware locked!");
 					
 					//Don't forget arguements!
-					boolean failed = false;
+					boolean succeeded = true;
 					String assignedBarcode = "NO_VALID_BARCODE";
 					
 					if (requirement.getRequiredCapability().equalsIgnoreCase(LOAD_CONTAINER_CAPABILITY)) {
@@ -536,12 +565,13 @@ public class ResourceAgent extends Agent {
 						if (!testingAgent) {
 					
 							//TODO: Actually perform requirement.
-							failed = sendMessagesToPLCDoJob(requirement, client);
+							succeeded = sendMessagesToPLCDoJob(requirement, client);
+							System.out.println("Succeeded = " + succeeded);
 						
 						} else {						
 							
 							//Dummy Code ----
-							failed = false;
+							succeeded = true;
 							Thread.sleep(5000);						
 							//----								
 							
@@ -561,7 +591,7 @@ public class ResourceAgent extends Agent {
 						
 					} 
 					
-					if (failed) {
+					if (!succeeded) {
 						
 						//Announce that this requirement has failed				
 						generalPublisher.sendKeyValueMessage(
@@ -569,6 +599,8 @@ public class ResourceAgent extends Agent {
 								requirement.getRequirementUID().toString(), 
 								STATUS_FAILED
 								);
+						
+						System.out.println(getName() + " publishing that " + requirement.getRequiredCapability() + " is " + STATUS_FAILED);
 						
 					} else {
 					
@@ -785,7 +817,7 @@ public class ResourceAgent extends Agent {
 				ACLMessage request = aclMessages.peek();
 				
 				if (request != null) {
-					System.out.println("Attempting to match message: " + request.getConversationId());
+					//System.out.println("Attempting to match message: " + request.getConversationId());
 				}
 				
 				try {
@@ -797,10 +829,10 @@ public class ResourceAgent extends Agent {
 						referencedRecipesLock.lock();
 						toDoListLock.lock();
 						
-						System.out.println("Dealing with Message!");
+						/*System.out.println("Dealing with Message!");
 						System.out.println("Performative: " + request.getPerformative());
 						System.out.println("Conversation ID: " + request.getConversationId());
-						System.out.println("Content: " + request.getContent());
+						System.out.println("Content: " + request.getContent());*/
 						
 						RequestAndRecipe requestAndRecipe = (RequestAndRecipe) request.getContentObject();
 						
@@ -1129,6 +1161,8 @@ public class ResourceAgent extends Agent {
 				
 					//Remove recipe from all stores
 					
+					System.out.println("Recipe being removed");
+					
 					//Remove publisher				
 					generalPublisher.removeTopic(recipeUID);
 					
@@ -1147,10 +1181,13 @@ public class ResourceAgent extends Agent {
 						//Dummy Code -----
 						//This code should not require an equivilent in full produciton code.
 						Recipe recipe = referencedRecipes.get(recipeUID);
-						String barcode = recipe.getIdentifier();
-						for (int i = 0; i < fakeBarcodes.length; i++) {
-							if (fakeBarcodes[i].equalsIgnoreCase(barcode)) {
-								barcodesInUse[i] = false;
+						
+						if (recipe != null) {
+							String barcode = recipe.getIdentifier();
+							for (int i = 0; i < fakeBarcodes.length; i++) {
+								if (fakeBarcodes[i].equalsIgnoreCase(barcode)) {
+									barcodesInUse[i] = false;
+								}
 							}
 						}
 						//---									
@@ -1161,6 +1198,7 @@ public class ResourceAgent extends Agent {
 				} catch (NullPointerException e) {
 					
 					System.out.println(getName() + " has encountered a problem with unregistering recipe");
+					e.printStackTrace();
 				}
 								
 			} else {

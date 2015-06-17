@@ -53,9 +53,7 @@ public class DispatchContainerPassThroughBehaviour {
             req = new Message(Message.WRITE, Message.BOOL, String.valueOf(false), Message.LOCAL, "Go");
             reply = client.send(req.toString());
             replyMsg = new Message(reply);
-            interpret(replyMsg);
-		    
-            Thread.sleep(10000);
+            interpret(replyMsg);            
             
 		    return true;
 	    

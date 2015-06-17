@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -34,6 +35,7 @@ import com.rti.connext.requestreply.Replier;
 import com.rti.connext.requestreply.ReplierParams;
 import com.rti.dds.domain.DomainParticipant;
 import com.rti.dds.domain.DomainParticipantFactory;
+import com.rti.dds.domain.DomainParticipantQos;
 import com.rti.dds.infrastructure.Duration_t;
 import com.rti.dds.infrastructure.RETCODE_NO_DATA;
 import com.rti.dds.infrastructure.ResourceLimitsQosPolicy;
@@ -71,10 +73,16 @@ public class TestACLReceiverChannel extends DataReaderAdapter {
 		
 		System.out.println("Creating ACLReceiver with topic " + topicName);
 		
+		DomainParticipantQos dpqos = new DomainParticipantQos();
+        DomainParticipantFactory.TheParticipantFactory.get_default_participant_qos(dpqos);
+
+        Random random = new Random(System.currentTimeMillis());
+    	dpqos.wire_protocol.rtps_app_id = dpqos.wire_protocol.rtps_app_id + random.nextInt();
+		
 		//Create Participant
 		 participant = DomainParticipantFactory.TheParticipantFactory.
             create_participant(
-                domainID, DomainParticipantFactory.PARTICIPANT_QOS_DEFAULT,
+                domainID, dpqos,
                 null /* listener */, StatusKind.STATUS_MASK_NONE);
         if (participant == null) {
             System.err.println("create_participant error\n");
@@ -161,7 +169,7 @@ public class TestACLReceiverChannel extends DataReaderAdapter {
     public void on_data_available(DataReader reader) {    	
     	
     	
-    	System.out.println("TestACLReceiver: Message Received");
+    	//System.out.println("TestACLReceiver: Message Received");
 
     	
     	TestACLDataReader testACLReader =
@@ -195,9 +203,9 @@ public class TestACLReceiverChannel extends DataReaderAdapter {
    					anotherMessage = aclMessage;
    					
    					if (anotherMessage != null) {
-   						System.out.println("TestACLReceiver: Message Received");						
+   						//System.out.println("TestACLReceiver: Message Received");						
    						receivedMessages.put(anotherMessage);
-   						System.out.println("Messages in queue: " + receivedMessages.size());
+   						//System.out.println("Messages in queue: " + receivedMessages.size());
    				}
    					
                 }

@@ -65,7 +65,7 @@ public class LoadContainerBehaviour {
           replyMsg = new Message(reply);
           interpret(replyMsg);
           
-          Thread.sleep(10000);
+          Thread.sleep(5000);
          
 	      
 	      return barCode;

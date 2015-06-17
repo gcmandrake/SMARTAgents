@@ -20,6 +20,7 @@ import RTI.keyValue.KeyValuePairSubscriberModule;
 import RTI.keyValue.KeyValueSimple;
 import resourceAgents.Requirement;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -35,6 +36,7 @@ import javafx.stage.Stage;
 public class RecipeCreatorController {
 	
 	final long CONTAINER_MAX_VOLUME = 4;
+	final int LABEL_MAX_CHARACTERS = 11;
 	final String POINT_OF_CONTACT_CAPABILITY = "Point_Of_Contact";
 	final String LOAD_CONTAINER_CAPABILITY = "load_container"; 
 	final String FILL_RED_CAPABILITY = "fill_red";
@@ -167,15 +169,19 @@ public class RecipeCreatorController {
 		//Every 0.25 seconds get a message
 		new Timer().schedule(new TimerTask() {
 						        @Override
-						        public void run() {						        	
-						            findResources();
+						        public void run() {	
+						        	Platform.runLater(() -> {
+						        		findResources();
+						        	});
 						        }
 								}, 0, 250);
 		
 		new Timer().schedule(new TimerTask() {
 								@Override
 								public void run() {
-								decrementAndCheckTimeouts();
+									Platform.runLater(() -> {
+										decrementAndCheckTimeouts();
+									});
 								}
 								}, 0, 5000);			
 		
@@ -320,9 +326,20 @@ public class RecipeCreatorController {
 				throw new NumberFormatException();
 			}
 			
-			boolean loadContainerBool = loadContainer.isSelected();			
-			boolean lidContainerBool = lidContainer.isSelected();
+			boolean loadContainerBool = loadContainer.isSelected();	
+			boolean lidContainerBool = lidContainer.isSelected();			
+			
 			String labelContainerLid = labelPrint.getText().trim();
+			if (labelContainerLid.length() > LABEL_MAX_CHARACTERS) {
+				
+				labelContainerLid = labelContainerLid.substring(0, LABEL_MAX_CHARACTERS-1);
+				
+			} else if (labelContainerLid.length() < LABEL_MAX_CHARACTERS) {
+					
+				String fillerString = "************";
+				labelContainerLid = labelContainerLid.concat(fillerString.substring(0, (LABEL_MAX_CHARACTERS - labelContainerLid.length())));
+				
+			}
 			
 			boolean dispatchContainerBool = dispatchContainer.isSelected();
 			boolean testContainerBool = testContainer.isSelected();

@@ -60,7 +60,7 @@ public class DispatchContainerBehaviour {
             replyMsg = new Message(reply);
             interpret(replyMsg);
             
-            Thread.sleep(15000);
+            Thread.sleep(10000);
 		    
 		    return true;
 	    

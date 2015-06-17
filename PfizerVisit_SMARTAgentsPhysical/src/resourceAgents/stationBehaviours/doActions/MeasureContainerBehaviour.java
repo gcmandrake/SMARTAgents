@@ -64,7 +64,7 @@ public class MeasureContainerBehaviour {
             req = new Message(Message.WRITE, Message.BOOL, String.valueOf(false), Message.LOCAL, "Go");
             reply = client.send(req.toString());
             replyMsg = new Message(reply);
-            interpret(replyMsg);
+            interpret(replyMsg); 
             
             Thread.sleep(15000);
 			
