@@ -337,6 +337,8 @@ public class PointOfContactAgent extends ResourceAgent {
 								//System.out.println("Received Reply from " + reply.getSender().getName());								
 								repliesCount++;
 								//System.out.println("Current replies: " + repliesCount + ". Expected replies: " + matchedRequirementsToAgents.size());
+								//Set recipe status to Claimed
+								
 							} else {
 								//TODO: Ask someone else.							
 							}

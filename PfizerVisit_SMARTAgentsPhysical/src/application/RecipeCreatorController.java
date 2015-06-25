@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -166,11 +167,18 @@ public class RecipeCreatorController {
 		
 		subscriberThread.start();
 		
+		long timeNow = System.currentTimeMillis();
+		
 		//Every 0.25 seconds get a message
 		new Timer().schedule(new TimerTask() {
 						        @Override
 						        public void run() {	
 						        	Platform.runLater(() -> {
+						        		
+						        		//VIDEO: For Recording!						   
+						        		//if (System.currentTimeMillis() > timeNow + 30000){findResourcesFake();}
+						        		
+						        		//For real:
 						        		findResources();
 						        	});
 						        }
@@ -235,6 +243,23 @@ public class RecipeCreatorController {
 	
 	public boolean isGoClicked() {
 		return goClicked;
+	}
+	
+	//Simulated turning on resources in such a way that recording is simple. 
+	private void findResourcesFake() {
+		
+		Random random = new Random();	
+		
+						
+		if (random.nextInt() % 10 == 0) {PoCOnline.setSelected(true); loadContainerOnline.setSelected(true);}	
+		if (random.nextInt() % 10 == 0) {fillRedOnline.setSelected(true);}
+		if (random.nextInt() % 10 == 0) {fillYellowOnline.setSelected(true);}
+		if (random.nextInt() % 10 == 0) {fillBlueOnline.setSelected(true);}
+		if (random.nextInt() % 10 == 0) {testOnline.setSelected(true);}
+		if (random.nextInt() % 10 == 0) {lidOnline.setSelected(true);}
+		if (random.nextInt() % 10 == 0) {dispatchOnline.setSelected(true);}		
+		
+		
 	}
 	
 	private void findResources() {

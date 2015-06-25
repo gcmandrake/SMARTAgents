@@ -81,8 +81,9 @@ public class ResourceAgent extends Agent {
 	protected final String LID_CONTAINER_CAPABILITY = "lid_container";
 	protected final String DISPATCH_CONTAINER_CAPABILITY = "dispatch_container";
 	
+	protected final String STATUS_UNCLAIMED = "Unclaimed";
 	protected final String STATUS_WAITING = "Waiting";
-	protected final String STATUS_IN_PROGRESS = "In_Progress";
+	protected final String STATUS_IN_PROGRESS = "Claimed";
 	protected final String STATUS_COMPLETED = "Completed";
 	protected final String STATUS_FAILED = "Failed";	
 
