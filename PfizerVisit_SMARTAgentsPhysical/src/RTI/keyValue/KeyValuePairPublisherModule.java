@@ -276,7 +276,7 @@ public class KeyValuePairPublisherModule {
 		
 	}
 	
-	public void sentRequirements(String topic, ArrayList<Requirement> requirements, String requester) {
+	public void sentRequirements(String topic, ArrayList<Requirement> requirements, String requester, String target) {
 		
 		String serialisedString = null;
 		
@@ -300,6 +300,7 @@ public class KeyValuePairPublisherModule {
 		KeyValuePair instance = new KeyValuePair();
 		instance.key = REQUIREMENTS_MESSAGE_KEY;
 		instance.source = requester;
+		instance.target = target;
 		instance.value = serialisedString;
 		InstanceHandle_t instance_handle = InstanceHandle_t.HANDLE_NIL;
 		

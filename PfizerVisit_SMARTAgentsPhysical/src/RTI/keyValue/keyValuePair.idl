@@ -1,5 +1,6 @@
 struct KeyValuePair {
 	string key; //@key
 	string source; //@key
+	string target;
 	string value;
 };
