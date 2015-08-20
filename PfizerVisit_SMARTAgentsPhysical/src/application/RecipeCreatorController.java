@@ -11,6 +11,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -26,6 +27,8 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;
@@ -63,6 +66,8 @@ public class RecipeCreatorController {
 	private RTI.keyValue.KeyValuePairSubscriberModule subscriber;
 	
 	private ConcurrentHashMap<String, Integer> timeouts;
+	
+	private Vector<String> pointOfContactAgents = new Vector<String>();
 	
 	@FXML
 	CheckBox PoCOnline;
@@ -173,12 +178,8 @@ public class RecipeCreatorController {
 		new Timer().schedule(new TimerTask() {
 						        @Override
 						        public void run() {	
-						        	Platform.runLater(() -> {
+						        	Platform.runLater(() -> {						        		
 						        		
-						        		//VIDEO: For Recording!						   
-						        		//if (System.currentTimeMillis() > timeNow + 30000){findResourcesFake();}
-						        		
-						        		//For real:
 						        		findResources();
 						        	});
 						        }
@@ -242,25 +243,9 @@ public class RecipeCreatorController {
 	}
 	
 	public boolean isGoClicked() {
-		return goClicked;
-	}
+		return goClicked;	}
 	
-	//Simulated turning on resources in such a way that recording is simple. 
-	private void findResourcesFake() {
-		
-		Random random = new Random();	
-		
-						
-		if (random.nextInt() % 10 == 0) {PoCOnline.setSelected(true); loadContainerOnline.setSelected(true);}	
-		if (random.nextInt() % 10 == 0) {fillRedOnline.setSelected(true);}
-		if (random.nextInt() % 10 == 0) {fillYellowOnline.setSelected(true);}
-		if (random.nextInt() % 10 == 0) {fillBlueOnline.setSelected(true);}
-		if (random.nextInt() % 10 == 0) {testOnline.setSelected(true);}
-		if (random.nextInt() % 10 == 0) {lidOnline.setSelected(true);}
-		if (random.nextInt() % 10 == 0) {dispatchOnline.setSelected(true);}		
-		
-		
-	}
+	
 	
 	private void findResources() {
 		
@@ -275,6 +260,7 @@ public class RecipeCreatorController {
 				//Parse into agent name and capabilities
 				String messageContent = message.getValue();
 				
+				//Use capabilties for tickboxes------------------				
 				if (messageContent.contains(POINT_OF_CONTACT_CAPABILITY)) {					
 					PoCOnline.setSelected(true);	
 					timeouts.put(POINT_OF_CONTACT_CAPABILITY, new Integer(30));
@@ -308,8 +294,21 @@ public class RecipeCreatorController {
 					dispatchOnline.setSelected(true);		
 					timeouts.put(DISPATCH_CONTAINER_CAPABILITY, new Integer(30));
 				}
+				//End Use capabilties for tickboxes------------------------------------
 				
+				//Use capabiltiies to generate available PoCA list
+				if (messageContent.contains(POINT_OF_CONTACT_CAPABILITY)) {			
 				
+					String[] components = messageContent.split("\\|");		
+					String agentName = components[0];	
+					
+					//if vector doens't already contain this PoCA
+					if (pointOfContactAgents.indexOf(POINT_OF_CONTACT_CAPABILITY) == -1) {		
+						
+						pointOfContactAgents.add(agentName);						
+					}
+					
+				}				
 			}
 		}
 	
@@ -447,38 +446,58 @@ public class RecipeCreatorController {
 				
 			}
 			
-			//Publish Recipe
+			//Publish Recipe only if a PoCA exists:
 			
-			System.out.println("Recipe Dispatched! Number of Requirements = " + requirementsForDispatch.size());
-			for (int i = 0; i < requirementsForDispatch.size(); i++) {
+			if (pointOfContactAgents.size() > 0) {
+			
+				//Select random PoCA
+				int maxIndex = pointOfContactAgents.size();			
+			    Random generator = new Random();
+			    int randomPoCA = generator.nextInt(maxIndex);
+			    String randomPoCAName = pointOfContactAgents.get(randomPoCA);
 				
-				Requirement requirement = requirementsForDispatch.get(i);
-				System.out.println("----------------------------------------------------------------------------");
-				System.out.println("Requirement ID: " + requirement.getRequirementUIDAsInt());
-				System.out.println("Requirement: " + requirement.getRequiredCapability());
-				ArrayList<Integer> requirementsBefore = requirement.getRequirementsBefore();
-				for (int j = 0; j < requirementsBefore.size(); j++) {
-					System.out.println("Pre-Condition Requirement: " + requirementsBefore.get(j).toString());
+				System.out.println("Recipe Dispatched! Number of Requirements = " + requirementsForDispatch.size());
+				System.out.println("Recipe Target: " + randomPoCAName);
+				for (int i = 0; i < requirementsForDispatch.size(); i++) {
+					
+					Requirement requirement = requirementsForDispatch.get(i);
+					System.out.println("----------------------------------------------------------------------------");
+					System.out.println("Requirement ID: " + requirement.getRequirementUIDAsInt());
+					System.out.println("Requirement: " + requirement.getRequiredCapability());
+					ArrayList<Integer> requirementsBefore = requirement.getRequirementsBefore();
+					for (int j = 0; j < requirementsBefore.size(); j++) {
+						System.out.println("Pre-Condition Requirement: " + requirementsBefore.get(j).toString());
+					}
+					for (Map.Entry<String, String> entry : requirement.getArguments().entrySet()) {	
+						System.out.println("Argument: " + entry.getKey() + " = " + entry.getValue());
+					}
+					System.out.println("----------------------------------------------------------------------------");
 				}
-				for (Map.Entry<String, String> entry : requirement.getArguments().entrySet()) {	
-					System.out.println("Argument: " + entry.getKey() + " = " + entry.getValue());
-				}
-				System.out.println("----------------------------------------------------------------------------");
+				
+				
+							
+				publisher.sentRequirements(RECIPE_TOPIC_NAME, requirementsForDispatch, RECIPE_DISPATCH_NAME, randomPoCAName);		
+				
+			} else {
+				
+				Alert alert = new Alert(AlertType.ERROR);
+				alert.setTitle("Error");
+				alert.setHeaderText("No Point of Contact found");
+				alert.setContentText("No point of contact agent found. Recipe not dispatched");
+
+				alert.showAndWait();
+				
 			}
-						
-			publisher.sentRequirements(RECIPE_TOPIC_NAME, requirementsForDispatch, RECIPE_DISPATCH_NAME);			
-			
 			
 			
 		} catch (NumberFormatException e) {
 			
-			Stage dialogStage = new Stage();
-			dialogStage.initModality(Modality.WINDOW_MODAL);
-			dialogStage.setScene(new Scene(VBoxBuilder.create().
-			    children(new Text("Incorrect number entered (quantities are integers 0-4).\nOr the total particulate is too high (Max Total Particulate: " + CONTAINER_MAX_VOLUME + ").")).
-			    alignment(Pos.CENTER).padding(new Insets(5)).build()));
-			dialogStage.show();		
+			Alert alert = new Alert(AlertType.INFORMATION);
+			alert.setTitle("Information");
+			alert.setHeaderText("Incorrect Number Entered");
+			alert.setContentText("Incorrect number entered (quantities are integers 0-4).\nOr the total particulate is too high (Max Total Particulate: " + CONTAINER_MAX_VOLUME + ").");
 			
+			alert.showAndWait();			
 		}
 		
 	}

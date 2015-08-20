@@ -1,23 +1,23 @@
 <?xml version="1.0"?>
-<!--
+<!-- 
 Description
 XML QoS Profile for keyValuePair
 
-The QoS configuration of the DDS entities in the generated example is loaded
+The QoS configuration of the DDS entities in the generated example is loaded 
 from this file.
 
 This file is used only when it is in the current working directory or when the
 environment variable NDDS_QOS_PROFILES is defined and points to this file.
 
-The profile in this file inherits from the builtin QoS profile
-BuiltinQosLib::Generic.StrictReliable. That profile, along with all of the
-other built-in QoS profiles can be found in the
-BuiltinProfiles.documentationONLY.xml file located in the
+The profile in this file inherits from the builtin QoS profile 
+BuiltinQosLib::Generic.StrictReliable. That profile, along with all of the 
+other built-in QoS profiles can be found in the 
+BuiltinProfiles.documentationONLY.xml file located in the 
 $NDDSHOME/resource/qos_profiles_5.1.0/xml/ directory.
 
-You may use any of these QoS configurations in your application simply by
-referring to them by the name shown in the
-BuiltinProfiles.documentationONLY.xml file and listed below:
+You may use any of these QoS configurations in your application simply by 
+referring to them by the name shown in the 
+BuiltinProfiles.documentationONLY.xml file and listed below: 
 
 * In library "BuiltinQosLib":
 ** Baseline
@@ -60,15 +60,15 @@ BuiltinProfiles.documentationONLY.xml file and listed below:
 You should not edit the file BuiltinProfiles.documentationONLY.xml directly.
 However, if you wish to modify any of the values in a built-in profile, the
 recommendation is to create a profile of your own and inherit from the built-in
-profile you wish to modify. The NDDS_QOS_PROFILES.example.xml file (contained in
+profile you wish to modify. The NDDS_QOS_PROFILES.example.xml file (contained in 
 the same directory as the BuiltinProfiles.documentationONLY.xml file) shows how
-to inherit from the built-in profiles.
+to inherit from the built-in profiles. 
 
-For more information about XML QoS Profiles see Chapter 15 in the
+For more information about XML QoS Profiles see Chapter 15 in the 
 RTI Connext user manual.
 -->
 <dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:noNamespaceSchemaLocation="C:/Program Files (x86)/RTI/ndds.5.1.0/scripts/../resource/rtiddsgen/../qos_profiles_5.1.0/schema/rti_dds_qos_profiles.xsd"
+     xsi:noNamespaceSchemaLocation="C:/Program Files (x86)/RTI/ndds.5.1.0/resource/qos_profiles_5.1.0/schema/rti_dds_qos_profiles.xsd"
      version="5.1.0">
     <!-- QoS Library containing the QoS profile used in the generated example.
 
@@ -76,20 +76,20 @@ RTI Connext user manual.
     -->
     <qos_library name="keyValuePair_Library">
 
-        <!-- QoS profile used to configure reliable communication between the DataWriter
+        <!-- QoS profile used to configure reliable communication between the DataWriter 
              and DataReader created in the example code.
 
              A QoS profile groups a set of related QoS.
         -->
         <qos_profile name="keyValuePair_Profile" base_name="BuiltinQosLibExp::Generic.StrictReliable" is_default_qos="true">
-            <!-- QoS used to configure the data writer created in the example code -->
-            <datawriter_qos>
+            <!-- QoS used to configure the data writer created in the example code -->                
+       <datawriter_qos>
                 <publication_name>
                     <name>keyValuePairDataWriter</name>
                 </publication_name>
             </datawriter_qos>
 
-            <!-- QoS used to configure the data reader created in the example code -->
+            <!-- QoS used to configure the data reader created in the example code -->                
             <datareader_qos>
                 <subscription_name>
                     <name>keyValuePairDataReader</name>
@@ -106,14 +106,6 @@ RTI Connext user manual.
                     <name>keyValuePairParticipant</name>
                     <role_name>keyValuePairParticipantRole</role_name>
                 </participant_name>
-                <property>
-                  <value>
-                    <element>
-                      <name>dds.transport.UDPv4.builtin.parent.deny_interfaces</name>
-                      <value>192.168.1.5</value>
-                    </element>
-                  </value>
-                </property>
 
             </participant_qos>
         </qos_profile>

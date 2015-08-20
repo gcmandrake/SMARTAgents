@@ -22,7 +22,7 @@
 JAVA_PATH = java
 JAVAC_PATH = javac
 
-JAVA_SOURCES =  ./KeyValuePair.java ./KeyValuePairSeq.java ./KeyValuePairTypeSupport.java ./KeyValuePairTypeCode.java ./KeyValuePairDataReader.java ./KeyValuePairDataWriter.java ./KeyValuePairSubscriber.java ./KeyValuePairPublisher.java
+JAVA_SOURCES = ./KeyValuePair.java ./KeyValuePairSeq.java ./KeyValuePairTypeSupport.java ./KeyValuePairTypeCode.java ./KeyValuePairDataReader.java ./KeyValuePairDataWriter.java ./KeyValuePairSubscriber.java ./KeyValuePairPublisher.java 
 
 CLASS_FILES  = $(JAVA_SOURCES:%.java=%.class)
 

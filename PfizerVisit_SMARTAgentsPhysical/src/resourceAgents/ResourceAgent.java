@@ -1,6 +1,8 @@
 package resourceAgents;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,17 +61,30 @@ import jade.lang.acl.UnreadableException;
 
 public class ResourceAgent extends Agent {
 	
-	protected final int DOMAIN_ID = 5;
-	protected final String GENERAL_PUBLISHER_TOPIC = "general_announce";	 
-	protected final long TICK_TIME_PRODUCT = 10000;
-	protected final long TICK_TIME_REANNOUNCE = 10000;
-	protected final long TICK_TIME_LONG = 500;
-	protected final long TICK_TIME_SHORT = 100;
+	//This file contains properties settings.
+	protected Properties properties = new Properties();
+	protected final String propertiesFileLoc = "SMARTAgents.properties";
+	
+	//Names of properties in properties file.
+	protected final String DOMAIN_ID_PROP_NAME = "domainID";
+	protected final String TICK_TIME_PRODUCT_PROP_NAME = "tickTimeProduct";
+	protected final String TICK_TIME_REANNOUNCE_PROP_NAME = "tickTimeReannounce";
+	protected final String TICK_TIME_REQUEST_PROP_NAME = "tickTimeRequest";
+	protected final String TICK_TIME_GENERAL_PROP_NAME = "tickTimeGeneral";
+	protected final String TICK_TIME_PRODUCT_STATUS_PROP_NAME = "tickTimeProductStatus";
+	protected final String TICK_TIME_ACL_PROP_NAME = "tickTimeACL";
+	protected final String TICK_TIME_KVP_PROP_NAME = "tickTimeKVPProcess";
+	protected final String PC_CLIENT_VERBOSE_NAME = "pcClientVerbose";
+	protected final String PC_CLIENT_PORT_NAME = "pcClientPort";
+	protected final String PC_CLIENT_IP_NAME = "pcClientIP";
+	
+	protected final String GENERAL_PUBLISHER_TOPIC = "general_announce";	 	
 	
 	protected final String ANNOUNCE_NEW_STRING = "announce_new";
 	protected final String ANNOUNCE_INFO_STRING = "announce_info";	
 	protected final String ANNOUNCE_RECIPE_FINISHED = "announce_recipe_finished";
-	protected final String REQUEST_ACL_CONVERSATION_TYPE = "Capability_Request";	
+	protected final String REQUEST_ACL_CONVERSATION_TYPE = "Capability_Request";
+	protected final String ACCEPT_ACL_CONVERSATION_TYPE = "Capability_Accept";
 	
 	protected final String BARCODE_IDENTIFIER = "Barcode";
 	protected final String UNKNOWN_BARCODE_NAME = "+++Unknown_Barcode+++";
@@ -129,15 +145,9 @@ public class ResourceAgent extends Agent {
 	protected ConcurrentLinkedQueue<ACLMessage> aclMessages = new ConcurrentLinkedQueue<ACLMessage>();
 	
 	//Client for connecting to PLC
-	protected  PLCClient client;
-	//Verbose status?
-	protected boolean verbose = true;
+	protected  PLCClient client;	
 	//Connected to PLC?
-	protected boolean connectedToPLC = false;
-	//Communication port
-	protected final int DEFAULT_PORT = 850;
-	//IP Address
-	private static final String HARDCODED_ETHERNET_IP = "192.254.1.2";
+	protected boolean connectedToPLC = false;	
 	
 	//Is this agent connected to a PLC? Having a capability 'testing' will fake connection. Untested for mixed testing/not testing environments.
 	protected final static String TESTING_CAPABILITY = "testing";
@@ -149,6 +159,14 @@ public class ResourceAgent extends Agent {
 	//Perform all necessary startup routines.
 	protected void setup() {
 		
+		if (!loadProperties()) {			
+			//properties not loaded. Abort execution
+			System.err.println("Properties file failed to load. Killing agent");
+			System.exit(1);
+		}				
+		
+		System.out.println("Testing Properties: " + properties.getProperty("testProperty"));
+		
 		//1: Get Arguments
 		//1a: Get agent name	
 		System.out.println("New Agent Created. Name: " + getName());			
@@ -159,10 +177,18 @@ public class ResourceAgent extends Agent {
 		knownResources.put(getName(), capabilities);
 		
 		//2a: Create Subscriber for feedback on existing agents
-		generalSubscriber = new KeyValuePairSubscriberModule(DOMAIN_ID, getName(), true);		
+		generalSubscriber = new KeyValuePairSubscriberModule(
+								Integer.parseInt(properties.getProperty(DOMAIN_ID_PROP_NAME)),
+								getName(),
+								true
+								);		
 		
 		//3: Create general publisher
-		generalPublisher = new KeyValuePairPublisherModule(DOMAIN_ID, getName(), true);
+		generalPublisher = new KeyValuePairPublisherModule(
+								Integer.parseInt(properties.getProperty(DOMAIN_ID_PROP_NAME)),
+								getName(),
+								true
+								);
 		
 		//4: Create Capability Map
 		keyValuePairs = new ConcurrentLinkedQueue<KeyValueSimple>();		
@@ -206,6 +232,53 @@ public class ResourceAgent extends Agent {
 		//TESTING--------------------------------------------------------------------------------------------			
 		//testingRoutines();	
 	}
+	//===========================================================================================================================================
+	
+	//Get Properties settings from properties file.
+	//Returns true if loaded correctly, false otherwise
+	@SuppressWarnings("finally")
+	private boolean loadProperties() {
+		
+		InputStream input = null;
+		
+		try {
+			
+			input = new FileInputStream(propertiesFileLoc);
+			properties.load(input);
+			
+		} catch (Exception e) {
+			
+			//Any exception return false;	
+			e.printStackTrace();
+			return false;
+			
+		} finally {
+			
+			if (input != null) {
+				
+				try {
+					//Close file stream
+					input.close();
+					//Input loaded successfully
+					return true;
+					
+				} catch (Exception e) {
+					
+					//Any exception return false;	
+					e.printStackTrace();
+					return false;
+				}
+				
+			} else {
+			
+				//Input was empty
+				System.out.println("Properties file not found");
+				return false;
+			
+			}			
+		}		
+	}
+	
 	
 	//===========================================================================================================================================	
 	//Add testing routines
@@ -224,7 +297,10 @@ public class ResourceAgent extends Agent {
 	protected void connectToPLC() {
 		
 		try {
-		      client = new PLCClient(HARDCODED_ETHERNET_IP, DEFAULT_PORT, verbose);
+		      client = new PLCClient(properties.getProperty(PC_CLIENT_IP_NAME), 
+		    		  					Integer.parseInt(properties.getProperty(PC_CLIENT_PORT_NAME)), 
+		    		  					Boolean.parseBoolean(properties.getProperty(PC_CLIENT_VERBOSE_NAME))
+		    		  					);
 
 		      while(true) {
 		    	  // connect via ethernet cable to the 'JavaSMC' server listening on the PLC
@@ -253,7 +329,7 @@ public class ResourceAgent extends Agent {
 	//Has a new product arrived and needs dealing with?
 	protected void checkForNewProduct() {
 		
-		addBehaviour (new TickerBehaviour(this, TICK_TIME_PRODUCT) {
+		addBehaviour (new TickerBehaviour(this, Long.parseLong(properties.getProperty(TICK_TIME_PRODUCT_PROP_NAME))) {
 
 			@Override
 			protected void onTick() {
@@ -539,7 +615,6 @@ public class ResourceAgent extends Agent {
 					
 					if (requirement.getRequiredCapability().equalsIgnoreCase(LOAD_CONTAINER_CAPABILITY)) {
 						
-						//TODO: Actually assign barcode
 						//Get Barcode	
 						if (!testingAgent) {
 							
@@ -630,16 +705,13 @@ public class ResourceAgent extends Agent {
 			}			
 		};
 		
-		addBehaviour(tbf.wrap(performTaskBehaviour));
-		
+		addBehaviour(tbf.wrap(performTaskBehaviour));		
 		
 	}
 
 	//===========================================================================================================================================	
 
 	//Send messages to PLC.
-	//TRUE = success
-	//FALSE = failure
 
 	protected boolean sendMessagesToPLCDoJob(Requirement requirement, PLCClient client) {
 		
@@ -803,11 +875,20 @@ public class ResourceAgent extends Agent {
 	  }  
 	
 	//===========================================================================================================================================	
+	
+	//Periodically check for request for bids from the ACLMessage queue
+	private void checkForContractNetRequests() {
+		
+		
+		
+	}
+	
+	//===========================================================================================================================================	
 
 	//Periodically check for REQUESTS from the ACLMessage queue
 	private void checkForRequests() {
 		//Add behaviour for determining if we've received a capability request
-		addBehaviour (new TickerBehaviour(this, TICK_TIME_LONG) {
+		addBehaviour (new TickerBehaviour(this, Long.parseLong(properties.getProperty(TICK_TIME_REQUEST_PROP_NAME))) {
 
 			@Override
 			public void onTick() {
@@ -937,7 +1018,7 @@ public class ResourceAgent extends Agent {
 	//Reannounce this agent's behaviours so other agents can spot it.
 	//NB: This could be replaced with RTI's QoS settings
 	private void periodicReannounce(ArrayList<String> capabilities) {
-		Behaviour reannounceBehaviour = new TickerBehaviour(this, TICK_TIME_REANNOUNCE) {
+		Behaviour reannounceBehaviour = new TickerBehaviour(this, Long.parseLong(properties.getProperty(TICK_TIME_REANNOUNCE_PROP_NAME))) {
 			
 			@Override
 			protected void onTick() {				
@@ -998,7 +1079,7 @@ public class ResourceAgent extends Agent {
 
 	//Deals with a KVP every tick
 	private void processKeyValuePairs() {
-		addBehaviour(new TickerBehaviour(this, TICK_TIME_SHORT) {
+		addBehaviour(new TickerBehaviour(this, Long.parseLong(properties.getProperty(TICK_TIME_KVP_PROP_NAME))) {
 			
 			@Override
 			public void onTick() {
@@ -1013,7 +1094,7 @@ public class ResourceAgent extends Agent {
 	//Check generalSubscriber for new KVPs every tick
 	private void receiveGeneralKeyValuePairs() {
 		
-		addBehaviour(new TickerBehaviour(this, TICK_TIME_LONG) {		
+		addBehaviour(new TickerBehaviour(this, Long.parseLong(properties.getProperty(TICK_TIME_GENERAL_PROP_NAME))) {	
 			
 			@Override
 			public void onTick() {		
@@ -1039,7 +1120,7 @@ public class ResourceAgent extends Agent {
 	//Periodically look for updates on that publisher
 	private void receiveProductStatusUpdates() {
 	
-		addBehaviour(new TickerBehaviour(this, TICK_TIME_LONG) {	
+		addBehaviour(new TickerBehaviour(this, Long.parseLong(properties.getProperty(TICK_TIME_PRODUCT_STATUS_PROP_NAME))) {	
 			
 			@Override
 			public void onTick() {					
@@ -1260,10 +1341,18 @@ public class ResourceAgent extends Agent {
 	protected void createPoCACommunicationChannel(String PoCAName) {
 		
 		//Create Messager to PoCA
-		channelToPoCAgent = new TestACLMessengerChannel(DOMAIN_ID, getName(), PoCAName+"PoC");
+		channelToPoCAgent = new TestACLMessengerChannel(
+									Integer.parseInt(properties.getProperty(DOMAIN_ID_PROP_NAME)),
+									getName(), 
+									PoCAName+"PoC"
+									);
 		
 		//Create Receiver from PoCA
-		channelFromPoCAgent = new TestACLReceiverChannel(DOMAIN_ID, PoCAName+"PoC", getName());
+		channelFromPoCAgent = new TestACLReceiverChannel(Integer.parseInt(
+									properties.getProperty(DOMAIN_ID_PROP_NAME)),
+									PoCAName+"PoC",
+									getName()
+									);
 		
 		//Start communication channel receiver
 		addBehaviour(tbf.wrap(new OneShotBehaviour(this) {
@@ -1275,7 +1364,7 @@ public class ResourceAgent extends Agent {
 		}));
 		
 		//Periodically add messages from PoCA to JADE message queue.
-		addBehaviour(tbf.wrap(new TickerBehaviour(this, TICK_TIME_LONG) {
+		addBehaviour(tbf.wrap(new TickerBehaviour(this, Long.parseLong(properties.getProperty(TICK_TIME_ACL_PROP_NAME))) {
 
 			@Override
 			protected void onTick() {

@@ -22,6 +22,7 @@ public class Recipe implements Serializable {
 		}
 		
 		for (int i = 0; i < requirements.size(); i++) {
+			
 			this.requirements.put(requirements.get(i).getRequirementUID(), requirements.get(i));
 			
 		}
@@ -53,6 +54,24 @@ public class Recipe implements Serializable {
 	
 	public void setAllRequirements(HashMap<Integer, Requirement> requirements) {
 		this.requirements = requirements;
+	}
+	
+	public static Recipe convertRequirements(ArrayList<Requirement> requirements, String recipeUID) {
+		
+		ArrayList<Requirement> requirementsWithUIDs = new ArrayList<Requirement>();	
+		
+		//Create Recipe from requirements
+		for (int i = 0; i < requirements.size(); i++) {
+			
+			Requirement modifiedRequirement = requirements.get(i);
+			modifiedRequirement.setRecipeUID(recipeUID);
+			requirementsWithUIDs.add(modifiedRequirement);
+		}
+		
+		Recipe newRecipe = new Recipe(recipeUID, null, requirementsWithUIDs);	
+		
+		return newRecipe;
+		
 	}
 	
 	
